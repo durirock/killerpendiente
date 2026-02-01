@@ -1,0 +1,660 @@
+
+Killer pendiente v0.2 · HTML
+Copiar
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Killer Pendiente</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --void: #0a0a0f; --space: #0d1117; --nebula: #161b22; --stellar: #21262d;
+            --cyan: #00ffff; --cyan-glow: #00e5ff; --cyan-deep: #0097a7;
+            --cyan-shadow: rgba(0,255,255,0.1); --cyan-pulse: rgba(0,255,255,0.3);
+            --red: #ff3d3d; --orange: #ffaa00; --green: #00ff88;
+            --text: #e6edf3; --text-sec: #8b949e; --text-muted: #484f58;
+            --glass: rgba(13,17,23,0.85); --glass-border: rgba(0,255,255,0.15);
+            --radius: 12px; --radius-lg: 20px;
+        }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Rajdhani', sans-serif; background: var(--void); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+        
+        /* Fondo cósmico */
+        .cosmic-bg { position: fixed; inset: 0; z-index: -1; background: radial-gradient(ellipse at 20% 20%, rgba(0,255,255,0.08) 0%, transparent 50%), radial-gradient(ellipse at 80% 80%, rgba(0,150,255,0.06) 0%, transparent 50%), linear-gradient(180deg, var(--void) 0%, var(--space) 50%, var(--void) 100%); }
+        .stars { position: absolute; inset: 0; background-image: radial-gradient(2px 2px at 20px 30px, rgba(255,255,255,0.8), transparent), radial-gradient(2px 2px at 40px 70px, rgba(0,255,255,0.6), transparent), radial-gradient(1px 1px at 90px 40px, rgba(255,255,255,0.5), transparent); background-size: 200px 200px; animation: float 60s linear infinite; }
+        @keyframes float { to { transform: translateY(-200px); } }
+        
+        /* Header */
+        .header { height: 60px; background: var(--glass); backdrop-filter: blur(20px); border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; position: sticky; top: 0; z-index: 100; }
+        .logo { display: flex; align-items: center; gap: 12px; }
+        .logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--cyan-glow), var(--cyan-deep)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .logo-text { font-family: 'Cinzel', serif; font-weight: 700; font-size: 1.1rem; letter-spacing: 2px; background: linear-gradient(90deg, #fff, var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .user-avatar { width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--cyan); display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-weight: 700; background: var(--nebula); cursor: pointer; transition: all 0.3s; }
+        .user-avatar:hover { transform: scale(1.1); box-shadow: 0 0 25px var(--cyan-pulse); }
+        
+        /* Screens */
+        .screen { display: none; flex: 1; padding: 20px; animation: fadeIn 0.4s ease-out; }
+        .screen.active { display: flex; flex-direction: column; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Login */
+        .login-screen { justify-content: center; align-items: center; min-height: calc(100vh - 60px); }
+        .login-box { width: 100%; max-width: 420px; padding: 40px 30px; background: var(--glass); backdrop-filter: blur(30px); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); position: relative; }
+        .login-box::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--cyan), transparent); }
+        .login-title { font-family: 'Cinzel', serif; font-size: 1.8rem; text-align: center; margin-bottom: 8px; background: linear-gradient(135deg, #fff, var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .login-sub { text-align: center; color: var(--text-sec); font-size: 0.9rem; margin-bottom: 25px; }
+        
+        /* Cargar Huevo - PROMINENTE */
+        .load-egg { margin-bottom: 25px; padding: 25px; background: linear-gradient(135deg, rgba(0,255,255,0.05), rgba(0,150,255,0.05)); border: 2px dashed var(--cyan); border-radius: var(--radius); text-align: center; cursor: pointer; transition: all 0.3s; }
+        .load-egg:hover { background: linear-gradient(135deg, rgba(0,255,255,0.1), rgba(0,150,255,0.1)); border-style: solid; box-shadow: 0 0 30px var(--cyan-shadow); }
+        .load-egg-icon { font-size: 48px; margin-bottom: 10px; display: block; animation: eggFloat 3s ease-in-out infinite; }
+        @keyframes eggFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        .load-egg-text { font-family: 'Cinzel', serif; font-size: 1rem; color: var(--cyan); letter-spacing: 2px; }
+        .load-egg-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 5px; }
+        
+        .divider { display: flex; align-items: center; margin: 20px 0; color: var(--text-muted); font-size: 0.8rem; }
+        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--glass-border); }
+        .divider span { padding: 0 15px; }
+        
+        /* User cards */
+        .user-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; max-height: 200px; overflow-y: auto; padding: 5px; margin-bottom: 20px; }
+        .user-card { padding: 12px 8px; background: var(--stellar); border: 1px solid transparent; border-radius: var(--radius); cursor: pointer; text-align: center; transition: all 0.3s; }
+        .user-card:hover { border-color: var(--cyan); transform: translateY(-2px); box-shadow: 0 8px 25px var(--cyan-shadow); }
+        .user-card.selected { border-color: var(--cyan); background: linear-gradient(135deg, var(--cyan-shadow), transparent); box-shadow: 0 0 30px var(--cyan-shadow); }
+        .user-card-initial { width: 36px; height: 36px; margin: 0 auto 6px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-weight: 700; font-size: 14px; color: var(--void); }
+        .user-card-name { font-weight: 600; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .user-card-xp { font-family: 'Orbitron', sans-serif; font-size: 0.65rem; color: var(--cyan); margin-top: 3px; }
+        .no-users { text-align: center; padding: 30px; color: var(--text-muted); }
+        
+        /* Input & Button */
+        .input-group { margin-bottom: 20px; }
+        .input-label { display: block; font-family: 'Orbitron', sans-serif; font-size: 0.7rem; color: var(--cyan); letter-spacing: 3px; margin-bottom: 8px; }
+        .input-field { width: 100%; padding: 14px 18px; background: var(--stellar); border: 1px solid var(--glass-border); border-radius: var(--radius); color: var(--text); font-family: 'Rajdhani', sans-serif; font-size: 1rem; outline: none; transition: all 0.3s; }
+        .input-field:focus { border-color: var(--cyan); box-shadow: 0 0 20px var(--cyan-shadow); }
+        .btn-primary { width: 100%; padding: 16px 24px; background: linear-gradient(135deg, var(--cyan-glow), var(--cyan-deep)); border: none; border-radius: var(--radius); color: var(--void); font-family: 'Cinzel', serif; font-weight: 700; font-size: 1rem; letter-spacing: 3px; cursor: pointer; transition: all 0.3s; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 40px var(--cyan-pulse); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        
+        /* Main Screen */
+        .main-screen { gap: 20px; padding-bottom: 80px; }
+        
+        /* Stats Panel */
+        .stats-panel { background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); padding: 20px; position: relative; }
+        .stats-panel::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--cyan-deep), var(--cyan), var(--cyan-deep)); }
+        .stats-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
+        .stats-info { display: flex; align-items: center; gap: 12px; }
+        .stats-avatar { width: 50px; height: 50px; border-radius: 50%; border: 2px solid; display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-weight: 700; font-size: 20px; cursor: pointer; }
+        .stats-name { font-family: 'Cinzel', serif; font-weight: 600; font-size: 1.2rem; }
+        .stats-level { font-family: 'Orbitron', sans-serif; font-size: 0.75rem; color: var(--cyan); letter-spacing: 2px; }
+        .btn-logout { padding: 8px 16px; background: var(--stellar); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-sec); font-size: 0.8rem; cursor: pointer; transition: all 0.3s; }
+        .btn-logout:hover { border-color: var(--cyan); color: var(--cyan); }
+        
+        /* XP Bar */
+        .xp-container { margin-bottom: 15px; }
+        .xp-labels { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-sec); margin-bottom: 6px; }
+        .xp-bar { height: 8px; background: var(--stellar); border-radius: 4px; overflow: hidden; }
+        .xp-fill { height: 100%; background: linear-gradient(90deg, var(--cyan-deep), var(--cyan)); border-radius: 4px; transition: width 0.5s; }
+        
+        /* Stats Grid */
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .stat-item { text-align: center; padding: 12px 8px; background: var(--stellar); border-radius: var(--radius); border: 1px solid transparent; transition: all 0.3s; }
+        .stat-item:hover { border-color: var(--cyan); transform: translateY(-2px); }
+        .stat-value { font-family: 'Orbitron', sans-serif; font-size: 1.4rem; font-weight: 700; color: var(--cyan); }
+        .stat-label { font-size: 0.7rem; color: var(--text-sec); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+        
+        /* Add Task */
+        .add-section { background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); padding: 20px; }
+        .section-title { font-family: 'Cinzel', serif; font-size: 1rem; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        .task-row { display: flex; gap: 10px; margin-bottom: 15px; }
+        .task-input { flex: 1; padding: 12px 16px; background: var(--stellar); border: 1px solid var(--glass-border); border-radius: var(--radius); color: var(--text); font-family: 'Rajdhani', sans-serif; font-size: 1rem; outline: none; }
+        .task-input:focus { border-color: var(--cyan); box-shadow: 0 0 15px var(--cyan-shadow); }
+        .task-options { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .task-opt-label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+        .task-select, .task-num { padding: 10px; background: var(--stellar); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text); font-size: 0.9rem; outline: none; width: 100%; }
+        .task-select option { background: var(--nebula); }
+        .btn-add { width: 100%; margin-top: 15px; padding: 14px; background: linear-gradient(135deg, var(--cyan-glow), var(--cyan-deep)); border: none; border-radius: var(--radius); color: var(--void); font-weight: 700; font-size: 1rem; letter-spacing: 2px; cursor: pointer; transition: all 0.3s; }
+        .btn-add:hover { box-shadow: 0 0 30px var(--cyan-pulse); transform: translateY(-2px); }
+        
+        /* Tasks List */
+        .tasks-section { flex: 1; }
+        .tasks-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .tasks-title { font-family: 'Cinzel', serif; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
+        .tasks-count { background: var(--cyan-shadow); color: var(--cyan); padding: 4px 12px; border-radius: 20px; font-family: 'Orbitron', sans-serif; font-size: 0.75rem; }
+        .tasks-list { display: flex; flex-direction: column; gap: 10px; }
+        
+        /* Task Card */
+        .task-card { background: var(--glass); backdrop-filter: blur(15px); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 16px; display: flex; align-items: center; gap: 15px; transition: all 0.3s; cursor: pointer; position: relative; }
+        .task-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+        .task-card.priority-a::before { background: var(--red); }
+        .task-card.priority-b::before { background: var(--orange); }
+        .task-card.priority-c::before { background: var(--green); }
+        .task-card:hover { transform: translateX(5px); border-color: var(--cyan); box-shadow: 0 5px 25px var(--cyan-shadow); }
+        .task-card.completed { opacity: 0.5; }
+        .task-card.completed .task-name { text-decoration: line-through; color: var(--text-muted); }
+        .task-check { width: 24px; height: 24px; border: 2px solid var(--text-muted); border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: all 0.3s; }
+        .task-check:hover { border-color: var(--cyan); }
+        .task-check.checked { background: var(--cyan); border-color: var(--cyan); }
+        .task-check.checked::after { content: '✓'; color: var(--void); font-weight: 700; font-size: 14px; }
+        .task-content { flex: 1; min-width: 0; }
+        .task-name { font-weight: 600; font-size: 1rem; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .task-meta { display: flex; gap: 12px; font-size: 0.75rem; color: var(--text-sec); }
+        .task-xp { font-family: 'Orbitron', sans-serif; font-weight: 700; color: var(--cyan); font-size: 0.9rem; }
+        .task-owner { font-size: 0.7rem; padding: 2px 8px; background: var(--stellar); border-radius: 4px; margin-left: auto; }
+        .tasks-empty { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+        .tasks-empty-icon { font-size: 48px; margin-bottom: 15px; opacity: 0.5; }
+        
+        /* Context Menu */
+        .context-menu { position: fixed; background: var(--nebula); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 8px 0; min-width: 180px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); z-index: 1000; display: none; }
+        .context-menu.show { display: block; animation: menuIn 0.2s ease-out; }
+        @keyframes menuIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .ctx-item { padding: 12px 20px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: all 0.2s; }
+        .ctx-item:hover { background: var(--stellar); color: var(--cyan); }
+        .ctx-item.danger { color: var(--red); }
+        .ctx-item.danger:hover { background: rgba(255,61,61,0.1); }
+        .ctx-divider { height: 1px; background: var(--glass-border); margin: 8px 0; }
+        
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; padding: 20px; }
+        .modal-overlay.show { opacity: 1; visibility: visible; }
+        .modal { background: var(--nebula); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); width: 100%; max-width: 450px; transform: scale(0.9); transition: transform 0.3s; }
+        .modal-overlay.show .modal { transform: scale(1); }
+        .modal-header { padding: 20px; border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between; }
+        .modal-title { font-family: 'Cinzel', serif; font-size: 1.2rem; }
+        .modal-close { width: 32px; height: 32px; background: var(--stellar); border: none; border-radius: 8px; color: var(--text-sec); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .modal-close:hover { color: var(--red); background: rgba(255,61,61,0.1); }
+        .modal-body { padding: 20px; }
+        .modal-footer { padding: 20px; border-top: 1px solid var(--glass-border); display: flex; gap: 10px; justify-content: flex-end; }
+        .btn-secondary { padding: 12px 24px; background: var(--stellar); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text); cursor: pointer; }
+        .btn-secondary:hover { border-color: var(--cyan); }
+        .btn-danger { padding: 12px 24px; background: var(--red); border: none; border-radius: 8px; color: white; cursor: pointer; }
+        
+        /* Universe Screen */
+        .universe-header { background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 20px; }
+        .universe-title { font-family: 'Cinzel', serif; font-size: 1.3rem; text-align: center; margin-bottom: 15px; background: linear-gradient(90deg, #fff, var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .filters { display: flex; gap: 10px; flex-wrap: wrap; }
+        .filter-group { flex: 1; min-width: 100px; }
+        .filter-label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px; display: block; }
+        .filter-select { width: 100%; padding: 10px; background: var(--stellar); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text); }
+        .universe-stats { display: flex; justify-content: center; gap: 30px; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--glass-border); }
+        .uni-stat { text-align: center; }
+        .uni-stat-value { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; color: var(--cyan); }
+        .uni-stat-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
+        
+        /* Brainstorm Screen */
+        .idea-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+        .idea-card { background: var(--stellar); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 20px; cursor: pointer; transition: all 0.3s; position: relative; }
+        .idea-card:hover { border-color: var(--cyan); transform: translateY(-3px); box-shadow: 0 10px 30px var(--cyan-shadow); }
+        .idea-text { font-size: 0.95rem; line-height: 1.5; }
+        .idea-actions { position: absolute; top: 10px; right: 10px; display: flex; gap: 5px; opacity: 0; transition: opacity 0.2s; }
+        .idea-card:hover .idea-actions { opacity: 1; }
+        .idea-btn { width: 28px; height: 28px; background: var(--nebula); border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+        .idea-btn:hover { background: var(--cyan-shadow); }
+        .idea-btn.delete:hover { background: rgba(255,61,61,0.2); }
+        
+        /* Bottom Nav */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 56px; background: var(--glass); backdrop-filter: blur(30px); border-top: 1px solid var(--glass-border); display: flex; justify-content: space-around; align-items: center; z-index: 100; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 12px; border-radius: 12px; cursor: pointer; color: var(--text-muted); transition: all 0.3s; text-decoration: none; }
+        .nav-item:hover, .nav-item.active { color: var(--cyan); background: var(--cyan-shadow); }
+        .nav-icon { font-size: 20px; }
+        .nav-label { font-size: 0.6rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        
+        /* Toast */
+        .toast { position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--stellar); border: 1px solid var(--cyan); padding: 12px 24px; border-radius: var(--radius); box-shadow: 0 10px 40px var(--cyan-shadow); z-index: 1000; opacity: 0; transition: all 0.4s; }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .toast.success { border-color: var(--green); }
+        .toast.error { border-color: var(--red); }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--stellar); }
+        ::-webkit-scrollbar-thumb { background: var(--cyan-deep); border-radius: 3px; }
+        
+        /* Responsive */
+        @media (max-width: 480px) {
+            .task-options { grid-template-columns: repeat(2, 1fr); }
+            .filters { flex-direction: column; }
+            .logo-text { font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="cosmic-bg"><div class="stars"></div></div>
+    
+    <div class="app">
+        <header class="header">
+            <div class="logo"><div class="logo-icon">🥚</div><span class="logo-text">KILLER PENDIENTE</span></div>
+            <div class="user-avatar" id="headerAvatar" style="display:none" onclick="logout()">A</div>
+        </header>
+
+        <!-- LOGIN -->
+        <div class="screen login-screen active" id="loginScreen">
+            <div class="login-box">
+                <h1 class="login-title">BIENVENIDO</h1>
+                <p class="login-sub">Carga tu Huevo Cósmico o selecciona un aspecto</p>
+                
+                <div class="load-egg" onclick="document.getElementById('fileInput').click()">
+                    <span class="load-egg-icon">🥚</span>
+                    <div class="load-egg-text">Cargar Huevo Cósmico</div>
+                    <div class="load-egg-hint">.cegg o .json</div>
+                </div>
+                <input type="file" id="fileInput" style="display:none" accept=".cegg,.json" onchange="loadEgg(event)">
+                
+                <div class="divider"><span>o selecciona un aspecto</span></div>
+                
+                <div class="user-cards" id="userCards">
+                    <div class="no-users">🌌<br>Carga un Huevo Cósmico</div>
+                </div>
+                
+                <div class="input-group" id="passGroup" style="display:none">
+                    <label class="input-label">Contraseña</label>
+                    <input type="password" class="input-field" id="passInput" placeholder="Contraseña">
+                </div>
+                
+                <button class="btn-primary" id="loginBtn" onclick="login()" disabled>ENTRAR</button>
+            </div>
+        </div>
+
+        <!-- MAIN -->
+        <div class="screen main-screen" id="mainScreen">
+            <div class="stats-panel">
+                <div class="stats-header">
+                    <div class="stats-info">
+                        <div class="stats-avatar" id="sAvatar">D</div>
+                        <div><div class="stats-name" id="sName">Demo</div><div class="stats-level">NIVEL <span id="sLevel">1</span></div></div>
+                    </div>
+                    <button class="btn-logout" onclick="logout()">Cambiar</button>
+                </div>
+                <div class="xp-container">
+                    <div class="xp-labels"><span>Pv: <span id="curXp">0</span>/<span id="nextXp">100</span></span><span id="xpPct">0%</span></div>
+                    <div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item"><div class="stat-value" id="totalXp">0</div><div class="stat-label">Pv Total</div></div>
+                    <div class="stat-item"><div class="stat-value" id="coins">0</div><div class="stat-label">Mu</div></div>
+                    <div class="stat-item"><div class="stat-value" id="pending">0</div><div class="stat-label">Pendientes</div></div>
+                </div>
+            </div>
+            
+            <div class="add-section">
+                <h3 class="section-title">⚔️ Nuevo Desafío</h3>
+                <div class="task-row"><input type="text" class="task-input" id="taskName" placeholder="Describe tu desafío..."></div>
+                <div class="task-options">
+                    <div><div class="task-opt-label">Pv</div><input type="number" class="task-num" id="taskXp" value="10" min="1"></div>
+                    <div><div class="task-opt-label">Min</div><input type="number" class="task-num" id="taskTime" value="30" min="1"></div>
+                    <div><div class="task-opt-label">Prioridad</div><select class="task-select" id="taskPri"><option value="C">C</option><option value="B">B</option><option value="A">A</option></select></div>
+                    <div><div class="task-opt-label">Categoría</div><select class="task-select" id="taskCat"><option>Otro</option><option>Pega</option><option>Proyectos</option><option>Casa</option><option>Jardín</option><option>Deporte</option></select></div>
+                </div>
+                <button class="btn-add" onclick="addTask()">⚡ Añadir</button>
+            </div>
+            
+            <div class="tasks-section">
+                <div class="tasks-header"><h3 class="tasks-title">🎯 Desafíos <span class="tasks-count" id="tCount">0</span></h3></div>
+                <div class="tasks-list" id="tasksList"></div>
+            </div>
+        </div>
+
+        <!-- UNIVERSE -->
+        <div class="screen" id="universeScreen">
+            <div class="universe-header">
+                <h2 class="universe-title">🌌 UNIVERSO PENDIENTE</h2>
+                <div class="filters">
+                    <div class="filter-group"><label class="filter-label">Usuario</label><select class="filter-select" id="fUser" onchange="filterUniverse()"><option value="all">Todos</option></select></div>
+                    <div class="filter-group"><label class="filter-label">Prioridad</label><select class="filter-select" id="fPri" onchange="filterUniverse()"><option value="all">Todas</option><option value="A">A</option><option value="B">B</option><option value="C">C</option></select></div>
+                    <div class="filter-group"><label class="filter-label">Categoría</label><select class="filter-select" id="fCat" onchange="filterUniverse()"><option value="all">Todas</option><option>Pega</option><option>Proyectos</option><option>Casa</option><option>Jardín</option><option>Deporte</option><option>Otro</option></select></div>
+                </div>
+                <div class="universe-stats">
+                    <div class="uni-stat"><div class="uni-stat-value" id="uniTotal">0</div><div class="uni-stat-label">Tareas</div></div>
+                    <div class="uni-stat"><div class="uni-stat-value" id="uniXp">0</div><div class="uni-stat-label">Pv Total</div></div>
+                </div>
+            </div>
+            <div class="tasks-list" id="uniList"></div>
+        </div>
+
+        <!-- BRAINSTORM -->
+        <div class="screen" id="brainstormScreen">
+            <div class="add-section">
+                <h3 class="section-title">💡 Nueva Idea</h3>
+                <div class="task-row"><input type="text" class="task-input" id="ideaInput" placeholder="Captura tu idea..."></div>
+                <button class="btn-add" onclick="addIdea()">💡 Guardar</button>
+            </div>
+            <div class="tasks-section">
+                <div class="tasks-header"><h3 class="tasks-title">🧠 Ideas <span class="tasks-count" id="iCount">0</span></h3></div>
+                <div class="idea-cards" id="ideasList"></div>
+            </div>
+        </div>
+
+        <nav class="bottom-nav" id="nav" style="display:none">
+            <a class="nav-item active" onclick="showScreen('main')" data-s="main"><span class="nav-icon">🎯</span><span class="nav-label">Tareas</span></a>
+            <a class="nav-item" onclick="showScreen('universe')" data-s="universe"><span class="nav-icon">🌌</span><span class="nav-label">Universo</span></a>
+            <a class="nav-item" onclick="showScreen('brainstorm')" data-s="brainstorm"><span class="nav-icon">💡</span><span class="nav-label">Ideas</span></a>
+        </nav>
+    </div>
+
+    <div class="context-menu" id="ctxMenu">
+        <div class="ctx-item" onclick="ctxComplete()"><span>✓</span> Completar</div>
+        <div class="ctx-item" onclick="ctxEdit()"><span>✏️</span> Editar</div>
+        <div class="ctx-divider"></div>
+        <div class="ctx-item danger" onclick="ctxDelete()"><span>🗑️</span> Eliminar</div>
+    </div>
+
+    <div class="modal-overlay" id="editModal">
+        <div class="modal">
+            <div class="modal-header"><h3 class="modal-title">Editar Desafío</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+            <div class="modal-body">
+                <div class="input-group"><label class="input-label">Nombre</label><input type="text" class="input-field" id="eName"></div>
+                <div class="task-options" style="margin-top:15px">
+                    <div><div class="task-opt-label">Pv</div><input type="number" class="task-num" id="eXp"></div>
+                    <div><div class="task-opt-label">Min</div><input type="number" class="task-num" id="eTime"></div>
+                    <div><div class="task-opt-label">Prioridad</div><select class="task-select" id="ePri"><option value="C">C</option><option value="B">B</option><option value="A">A</option></select></div>
+                    <div><div class="task-opt-label">Categoría</div><select class="task-select" id="eCat"><option>Otro</option><option>Pega</option><option>Proyectos</option><option>Casa</option><option>Jardín</option><option>Deporte</option></select></div>
+                </div>
+            </div>
+            <div class="modal-footer"><button class="btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn-primary" style="width:auto" onclick="saveEdit()">Guardar</button></div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+    const S = { user: null, users: {}, tasks: [], xp: {}, coins: {}, ideas: [], selCard: null, selTask: null, loaded: false };
+    
+    // Niveles
+    const calcLevel = (xp) => {
+        let lvl=1, acc=0, next=100;
+        while(xp >= acc+next) { acc+=next; lvl++; next=Math.floor(100*Math.pow(1.5,lvl-1)); }
+        return { lvl, cur: xp-acc, next };
+    };
+    
+    // Colores
+    const colors = ['#00ffff','#ff6b6b','#4ecdc4','#45b7d1','#96ceb4','#ffeaa7','#fd79a8','#6c5ce7'];
+    const getColor = (n) => colors[Math.abs([...n].reduce((a,c)=>c.charCodeAt(0)+((a<<5)-a),0)) % colors.length];
+    
+    // UUID
+    const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c=='x'?r:(r&0x3|0x8)).toString(16);});
+    
+    // Fecha
+    const fmtDate = (d) => `${d.getDate().toString().padStart(2,'0')}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getFullYear()}`;
+    const fmtDateTime = (d) => `${fmtDate(d)} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}`;
+    
+    // Escape HTML
+    const esc = (t) => { const d=document.createElement('div'); d.textContent=t||''; return d.innerHTML; };
+    
+    // Toast
+    const toast = (msg, type='info') => { const t=document.getElementById('toast'); t.textContent=msg; t.className='toast '+type+' show'; setTimeout(()=>t.classList.remove('show'),3000); };
+    
+    // Cargar Huevo
+    function loadEgg(e) {
+        const file = e.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                let content = ev.target.result;
+                if(content.includes('<<<COSMIC-EGG-START>>>')) {
+                    const match = content.match(/<<<DATA-START>>>([\s\S]*?)<<<DATA-END>>>/);
+                    if(match) content = match[1].trim();
+                }
+                const data = JSON.parse(content);
+                processEgg(data);
+            } catch(err) { toast('Error: '+err.message, 'error'); }
+        };
+        reader.readAsText(file);
+    }
+    
+    function processEgg(data) {
+        const users = data.perfil_global?.lista_usuarios || [];
+        const perfiles = data.perfiles_usuarios || {};
+        if(!users.length) { toast('Sin usuarios', 'error'); return; }
+        
+        S.users={}; S.tasks=[]; S.xp={}; S.coins={}; S.ideas=[];
+        
+        users.forEach(u => {
+            const p = perfiles[u] || {};
+            const q = p.datos_cuantitativos || {};
+            const c = p.datos_cualitativos || {};
+            const nx = q.nivel_y_xp || {};
+            
+            S.users[u] = { color: getColor(u) };
+            S.xp[u] = nx.xp_total || 0;
+            S.coins[u] = nx.mu_disponibles || 0;
+            
+            (c.tareas_detalladas || []).forEach(t => { t.username=u; if(!t.id) t.id=uuid(); S.tasks.push(t); });
+            (c.brainstorming_ideas || []).forEach(i => { if(i && typeof i==='string') S.ideas.push({id:uuid(),name:i}); });
+        });
+        
+        S.loaded = true;
+        save();
+        renderUsers();
+        updateFilters();
+        toast(`¡${users.length} usuario(s) cargados!`, 'success');
+    }
+    
+    // Render usuarios
+    function renderUsers() {
+        const c = document.getElementById('userCards');
+        const keys = Object.keys(S.users);
+        if(!keys.length) { c.innerHTML='<div class="no-users">🌌<br>Carga un Huevo Cósmico</div>'; document.getElementById('loginBtn').disabled=true; return; }
+        
+        c.innerHTML = keys.map(u => {
+            const {lvl} = calcLevel(S.xp[u]||0);
+            return `<div class="user-card" data-u="${u}" onclick="selectUser('${u}')">
+                <div class="user-card-initial" style="background:${S.users[u].color}">${u[0].toUpperCase()}</div>
+                <div class="user-card-name">${esc(u)}</div>
+                <div class="user-card-xp">Nv.${lvl} · ${S.xp[u]||0} Pv</div>
+            </div>`;
+        }).join('');
+    }
+    
+    function selectUser(u) {
+        document.querySelectorAll('.user-card').forEach(c => c.classList.remove('selected'));
+        const card = document.querySelector(`.user-card[data-u="${u}"]`);
+        if(card) { card.classList.add('selected'); S.selCard=u; }
+        document.getElementById('passGroup').style.display='block';
+        document.getElementById('passInput').focus();
+        document.getElementById('loginBtn').disabled=false;
+    }
+    
+    function login() {
+        if(!S.selCard) { toast('Selecciona usuario', 'error'); return; }
+        S.user = S.selCard;
+        loadUserData();
+        document.getElementById('headerAvatar').style.display='flex';
+        document.getElementById('nav').style.display='flex';
+        showScreen('main');
+        toast(`¡Bienvenido, ${S.user}!`, 'success');
+    }
+    
+    function logout() {
+        S.user=null; S.selCard=null;
+        document.getElementById('headerAvatar').style.display='none';
+        document.getElementById('nav').style.display='none';
+        document.getElementById('passGroup').style.display='none';
+        document.getElementById('passInput').value='';
+        document.getElementById('loginBtn').disabled=!S.loaded;
+        document.querySelectorAll('.user-card').forEach(c=>c.classList.remove('selected'));
+        showScreen('login');
+    }
+    
+    function loadUserData() {
+        const u=S.user, color=S.users[u]?.color||'#00ffff', xp=S.xp[u]||0, c=S.coins[u]||0;
+        const {lvl,cur,next} = calcLevel(xp);
+        const pct = Math.floor((cur/next)*100);
+        
+        const ha=document.getElementById('headerAvatar'); ha.textContent=u[0].toUpperCase(); ha.style.borderColor=color; ha.style.color=color;
+        const sa=document.getElementById('sAvatar'); sa.textContent=u[0].toUpperCase(); sa.style.borderColor=color; sa.style.color=color;
+        document.getElementById('sName').textContent=u; document.getElementById('sName').style.color=color;
+        document.getElementById('sLevel').textContent=lvl;
+        document.getElementById('curXp').textContent=cur; document.getElementById('nextXp').textContent=next;
+        document.getElementById('xpPct').textContent=pct+'%'; document.getElementById('xpFill').style.width=pct+'%';
+        document.getElementById('totalXp').textContent=xp; document.getElementById('coins').textContent=c;
+        
+        loadTasks();
+    }
+    
+    function loadTasks() {
+        const tasks = S.tasks.filter(t => t.username===S.user && !t.completed).sort((a,b) => {const o={A:0,B:1,C:2}; return (o[a.priority]||2)-(o[b.priority]||2);});
+        document.getElementById('tCount').textContent=tasks.length;
+        document.getElementById('pending').textContent=tasks.length;
+        renderTasks(tasks, 'tasksList', false);
+    }
+    
+    function renderTasks(tasks, containerId, showOwner) {
+        const c = document.getElementById(containerId);
+        if(!tasks.length) { c.innerHTML='<div class="tasks-empty"><div class="tasks-empty-icon">🌌</div><div>No hay tareas</div></div>'; return; }
+        c.innerHTML = tasks.map(t => `
+            <div class="task-card priority-${(t.priority||'c').toLowerCase()} ${t.completed?'completed':''}" data-id="${t.id}" oncontextmenu="showCtx(event,'${t.id}')" onclick="openEdit('${t.id}')">
+                <div class="task-check ${t.completed?'checked':''}" onclick="toggle('${t.id}',event)"></div>
+                <div class="task-content">
+                    <div class="task-name">${esc(t.name)}</div>
+                    <div class="task-meta"><span>⏱️ ${t.time||0}m</span><span>📁 ${t.category||'Otro'}</span></div>
+                </div>
+                <div class="task-xp">+${t.xp||0}</div>
+                ${showOwner?`<div class="task-owner" style="color:${S.users[t.username]?.color||'#888'}">${t.username}</div>`:''}
+            </div>
+        `).join('');
+    }
+    
+    function addTask() {
+        const name = document.getElementById('taskName').value.trim();
+        if(!name) { toast('Escribe el desafío', 'error'); return; }
+        S.tasks.push({
+            id: uuid(), name, xp: parseInt(document.getElementById('taskXp').value)||10,
+            time: parseInt(document.getElementById('taskTime').value)||30,
+            priority: document.getElementById('taskPri').value,
+            category: document.getElementById('taskCat').value,
+            completed: false, date_added: fmtDate(new Date()), username: S.user, distractions: []
+        });
+        document.getElementById('taskName').value='';
+        loadTasks(); save(); toast('¡Añadido!', 'success');
+    }
+    
+    function toggle(id, e) {
+        e.stopPropagation();
+        const t = S.tasks.find(x=>x.id===id); if(!t) return;
+        t.completed = !t.completed;
+        if(t.completed) { t.date_completed=fmtDateTime(new Date()); S.xp[t.username]=(S.xp[t.username]||0)+(t.xp||0); toast(`+${t.xp||0} Pv!`, 'success'); }
+        else { S.xp[t.username]=(S.xp[t.username]||0)-(t.xp||0); }
+        if(S.user) loadUserData(); save();
+    }
+    
+    function deleteTask(id) {
+        const i = S.tasks.findIndex(x=>x.id===id);
+        if(i>-1) { S.tasks.splice(i,1); loadTasks(); save(); toast('Eliminada', 'success'); }
+    }
+    
+    // Context Menu
+    function showCtx(e, id) {
+        e.preventDefault(); e.stopPropagation(); S.selTask=id;
+        const m=document.getElementById('ctxMenu'); m.style.left=e.pageX+'px'; m.style.top=e.pageY+'px'; m.classList.add('show');
+        setTimeout(()=>document.addEventListener('click',closeCtx),10);
+    }
+    function closeCtx() { document.getElementById('ctxMenu').classList.remove('show'); document.removeEventListener('click',closeCtx); }
+    function ctxComplete() { if(S.selTask) { const t=S.tasks.find(x=>x.id===S.selTask); if(t&&!t.completed) toggle(S.selTask,{stopPropagation:()=>{}}); } closeCtx(); }
+    function ctxEdit() { if(S.selTask) openEdit(S.selTask); closeCtx(); }
+    function ctxDelete() { if(S.selTask && confirm('¿Eliminar?')) deleteTask(S.selTask); closeCtx(); }
+    
+    // Edit Modal
+    function openEdit(id) {
+        const t=S.tasks.find(x=>x.id===id); if(!t) return; S.selTask=id;
+        document.getElementById('eName').value=t.name||'';
+        document.getElementById('eXp').value=t.xp||10;
+        document.getElementById('eTime').value=t.time||30;
+        document.getElementById('ePri').value=t.priority||'C';
+        document.getElementById('eCat').value=t.category||'Otro';
+        document.getElementById('editModal').classList.add('show');
+    }
+    function closeModal() { document.getElementById('editModal').classList.remove('show'); S.selTask=null; }
+    function saveEdit() {
+        const t=S.tasks.find(x=>x.id===S.selTask); if(!t) return;
+        t.name=document.getElementById('eName').value.trim()||t.name;
+        t.xp=parseInt(document.getElementById('eXp').value)||t.xp;
+        t.time=parseInt(document.getElementById('eTime').value)||t.time;
+        t.priority=document.getElementById('ePri').value;
+        t.category=document.getElementById('eCat').value;
+        loadTasks(); save(); closeModal(); toast('Actualizada', 'success');
+    }
+    
+    // Universe
+    function updateFilters() {
+        const s=document.getElementById('fUser'); s.innerHTML='<option value="all">Todos</option>';
+        Object.keys(S.users).forEach(u => { const o=document.createElement('option'); o.value=u; o.textContent=u; s.appendChild(o); });
+    }
+    function filterUniverse() {
+        const fu=document.getElementById('fUser').value, fp=document.getElementById('fPri').value, fc=document.getElementById('fCat').value;
+        let tasks = S.tasks.filter(t=>!t.completed);
+        if(fu!=='all') tasks=tasks.filter(t=>t.username===fu);
+        if(fp!=='all') tasks=tasks.filter(t=>t.priority===fp);
+        if(fc!=='all') tasks=tasks.filter(t=>t.category===fc);
+        tasks.sort((a,b)=>{const o={A:0,B:1,C:2};return(o[a.priority]||2)-(o[b.priority]||2);});
+        document.getElementById('uniTotal').textContent=tasks.length;
+        document.getElementById('uniXp').textContent=tasks.reduce((s,t)=>s+(t.xp||0),0);
+        renderTasks(tasks, 'uniList', true);
+    }
+    
+    // Brainstorm
+    function loadIdeas() {
+        document.getElementById('iCount').textContent=S.ideas.length;
+        const c=document.getElementById('ideasList');
+        if(!S.ideas.length) { c.innerHTML='<div class="tasks-empty"><div class="tasks-empty-icon">💭</div><div>No hay ideas</div></div>'; return; }
+        c.innerHTML = S.ideas.map(i => `
+            <div class="idea-card">
+                <div class="idea-text">${esc(i.name)}</div>
+                <div class="idea-actions">
+                    <button class="idea-btn" onclick="transferIdea('${i.id}')" title="Convertir">📋</button>
+                    <button class="idea-btn delete" onclick="deleteIdea('${i.id}')" title="Eliminar">🗑️</button>
+                </div>
+            </div>
+        `).join('');
+    }
+    function addIdea() {
+        const t=document.getElementById('ideaInput').value.trim();
+        if(!t) { toast('Escribe una idea', 'error'); return; }
+        S.ideas.push({id:uuid(),name:t});
+        document.getElementById('ideaInput').value='';
+        loadIdeas(); save(); toast('Guardada', 'success');
+    }
+    function deleteIdea(id) {
+        const i=S.ideas.findIndex(x=>x.id===id);
+        if(i>-1) { S.ideas.splice(i,1); loadIdeas(); save(); toast('Eliminada', 'success'); }
+    }
+    function transferIdea(id) {
+        if(!S.user) { toast('Inicia sesión', 'error'); return; }
+        const idea=S.ideas.find(x=>x.id===id); if(!idea) return;
+        S.tasks.push({id:uuid(),name:idea.name,xp:10,time:30,priority:'C',category:'Otro',completed:false,date_added:fmtDate(new Date()),username:S.user,distractions:[]});
+        const i=S.ideas.findIndex(x=>x.id===id); if(i>-1) S.ideas.splice(i,1);
+        loadIdeas(); save(); toast('Convertida en tarea', 'success');
+    }
+    
+    // Screens
+    function showScreen(name) {
+        document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+        document.getElementById(name+'Screen')?.classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(n=>{n.classList.remove('active');if(n.dataset.s===name)n.classList.add('active');});
+        if(name==='universe') filterUniverse();
+        if(name==='brainstorm') loadIdeas();
+    }
+    
+    // Storage
+    function save() { localStorage.setItem('kp', JSON.stringify({users:S.users,tasks:S.tasks,xp:S.xp,coins:S.coins,ideas:S.ideas,loaded:S.loaded})); }
+    function load() {
+        const d=localStorage.getItem('kp'); if(!d) return;
+        try { const p=JSON.parse(d); S.users=p.users||{}; S.tasks=p.tasks||[]; S.xp=p.xp||{}; S.coins=p.coins||{}; S.ideas=p.ideas||[]; S.loaded=p.loaded||false;
+            if(S.loaded) { renderUsers(); updateFilters(); }
+        } catch(e) {}
+    }
+    
+    // Init
+    document.addEventListener('DOMContentLoaded', () => {
+        load();
+        document.getElementById('passInput').addEventListener('keypress', e => { if(e.key==='Enter') login(); });
+        document.getElementById('taskName').addEventListener('keypress', e => { if(e.key==='Enter') addTask(); });
+        document.getElementById('ideaInput').addEventListener('keypress', e => { if(e.key==='Enter') addIdea(); });
+        document.addEventListener('keydown', e => { if(e.key==='Escape') { closeCtx(); closeModal(); } });
+        document.getElementById('editModal').addEventListener('click', e => { if(e.target.id==='editModal') closeModal(); });
+    });
+    </script>
+</body>
+</html>
