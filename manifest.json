@@ -1,0 +1,21 @@
+{
+  "name": "Killer Pendiente",
+  "short_name": "KP",
+  "description": "Motor de Atención Soberana. Mata lo que postergaste.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "lang": "es",
+  "categories": ["productivity", "lifestyle"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%230a0a0f'/%3E%3Ccircle cx='256' cy='256' r='200' fill='none' stroke='%23c0392b' stroke-width='6'/%3E%3Ccircle cx='256' cy='256' r='140' fill='none' stroke='%23c0392b' stroke-width='2' opacity='0.4'/%3E%3Ctext x='256' y='220' font-size='80' font-family='Georgia' text-anchor='middle' fill='%23e8e8f0'%3EKP%3C/text%3E%3Ctext x='256' y='310' font-size='28' font-family='Courier New' text-anchor='middle' fill='%23c0392b' letter-spacing='6'%3EKILLER%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
