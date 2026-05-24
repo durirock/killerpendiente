@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Motor de Atención Soberana — Manifiesto</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Space+Mono:wght@400;700&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --void: #04020c;
+  --gold: #c9a84c;
+  --gold-dim: #7a6230;
+  --gold-glow: rgba(201,168,76,0.12);
+  --cyan: #4ecdc4;
+  --purple: #8b5cf6;
+  --red: #c94c4c;
+  --amber: #c98a2c;
+  --white: #f0ebff;
+  --muted: #8a84a0;
+  --rule: rgba(255,255,255,0.05);
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--void);
+  color: var(--white);
+  font-family: 'Crimson Pro', serif;
+  font-size: 1.15rem;
+  line-height: 1.8;
+  overflow-x: hidden;
+}
+
+/* ── STARFIELD ── */
+#starfield { position:fixed; inset:0; z-index:0; pointer-events:none; }
+
+/* ── NOISE ── */
+.noise {
+  position:fixed; inset:0; z-index:1; pointer-events:none; opacity:0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── PROGRESS BAR ── */
+#progress-bar-wrap { position:fixed; top:0; left:0; right:0; height:3px; z-index:200; background:rgba(255,255,255,0.03); }
+#progress-bar { height:100%; width:0%; background:linear-gradient(90deg,var(--gold),var(--cyan),var(--purple)); box-shadow:0 0 8px var(--gold); transition:width 0.08s linear; }
+
+/* ── HUD ── */
+#hud-info { position:fixed; top:10px; right:16px; z-index:200; display:flex; align-items:center; gap:10px; }
+.hud-pv {
+  font-family:'Space Mono',monospace; font-size:0.52rem; letter-spacing:0.12em;
+  color:var(--gold); padding:4px 10px; border:1px solid var(--gold-dim);
+  border-radius:20px; background:rgba(201,168,76,0.06); transition:all 0.3s;
+}
+.hud-pv.burst { background:rgba(201,168,76,0.22); box-shadow:0 0 14px var(--gold); animation:pvBurst 0.4s ease; }
+@keyframes pvBurst { 0%{transform:scale(1)} 40%{transform:scale(1.18)} 100%{transform:scale(1)} }
+
+/* ── SOUND BUTTON ── */
+#sound-btn {
+  font-family:'Space Mono',monospace; font-size:0.5rem; letter-spacing:0.15em;
+  color:var(--muted); background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);
+  border-radius:20px; padding:4px 12px; cursor:pointer; transition:all 0.3s;
+  display:flex; align-items:center; gap:6px;
+}
+#sound-btn:hover { border-color:var(--cyan); color:var(--cyan); }
+#sound-btn.on { border-color:var(--cyan); color:var(--cyan); background:rgba(78,205,196,0.07); box-shadow:0 0 10px rgba(78,205,196,0.2); }
+.sound-dot { width:5px; height:5px; border-radius:50%; background:currentColor; animation:none; }
+#sound-btn.on .sound-dot { animation:pulse-sound 1.5s ease-in-out infinite; }
+@keyframes pulse-sound {
+  0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.6);opacity:0.6}
+}
+.sound-bars { display:flex; gap:2px; align-items:flex-end; height:10px; }
+.sound-bar { width:2px; border-radius:1px; background:currentColor; }
+#sound-btn.on .sb1 { animation:bar 0.8s ease-in-out infinite; }
+#sound-btn.on .sb2 { animation:bar 0.8s ease-in-out 0.15s infinite; }
+#sound-btn.on .sb3 { animation:bar 0.8s ease-in-out 0.3s infinite; }
+.sb1{height:4px} .sb2{height:7px} .sb3{height:5px}
+@keyframes bar { 0%,100%{height:3px} 50%{height:10px} }
+
+/* ── SIDE NAV ── */
+#side-nav {
+  position:fixed; right:18px; top:50%; transform:translateY(-50%);
+  z-index:190; display:flex; flex-direction:column; gap:8px;
+}
+.nav-dot {
+  width:5px; height:5px; border-radius:50%;
+  background:rgba(255,255,255,0.12); cursor:pointer;
+  transition:all 0.3s; border:1px solid transparent; position:relative;
+}
+.nav-dot::before {
+  content:attr(data-label); position:absolute; right:13px; top:50%;
+  transform:translateY(-50%); font-family:'Space Mono',monospace; font-size:0.42rem;
+  color:var(--muted); white-space:nowrap; opacity:0; transition:opacity 0.2s; pointer-events:none;
+}
+.nav-dot:hover::before { opacity:1; }
+.nav-dot.active,.nav-dot:hover {
+  background:var(--gold); border-color:var(--gold);
+  box-shadow:0 0 7px var(--gold); transform:scale(1.6);
+}
+
+/* ── SECCIONES ── */
+.section { position:relative; z-index:2; padding:10vh 0; }
+.section-inner { max-width:680px; margin:0 auto; padding:0 clamp(1.5rem,5vw,4rem); }
+
+/* ── COVER ── */
+#cover {
+  min-height:100vh; display:flex; flex-direction:column;
+  justify-content:center; padding:0 clamp(1.5rem,8vw,8rem);
+  position:relative; z-index:2;
+}
+.cover-eyebrow {
+  font-family:'Space Mono',monospace; font-size:0.52rem; letter-spacing:0.4em;
+  color:var(--gold-dim); text-transform:uppercase; margin-bottom:2.5rem;
+  opacity:0; animation:fadeUp 1s ease 0.3s both;
+}
+.cover-title {
+  font-family:'EB Garamond',serif; font-size:clamp(2.8rem,6vw,5rem);
+  font-weight:400; line-height:1.06; color:var(--white); margin-bottom:1.2rem;
+  opacity:0; animation:fadeUp 1.2s ease 0.6s both;
+}
+.cover-title em { color:var(--gold); font-style:italic; }
+.cover-sub {
+  font-family:'Crimson Pro',serif; font-size:clamp(1rem,2vw,1.25rem);
+  font-style:italic; color:var(--muted); max-width:500px;
+  margin-bottom:3rem; line-height:1.6;
+  opacity:0; animation:fadeUp 1s ease 0.9s both;
+}
+.cover-begin { opacity:0; animation:fadeUp 1s ease 1.4s both; display:flex; align-items:center; gap:1.5rem; }
+.btn-begin {
+  font-family:'Space Mono',monospace; font-size:0.62rem; letter-spacing:0.3em;
+  text-transform:uppercase; color:var(--void); background:var(--gold);
+  border:none; padding:13px 26px; border-radius:2px; cursor:pointer;
+  transition:all 0.3s; animation:breathe 3s ease-in-out 2s infinite;
+}
+.btn-begin:hover { background:var(--cyan); box-shadow:0 0 30px rgba(78,205,196,0.4); transform:translateY(-2px); }
+.cover-time { font-family:'Space Mono',monospace; font-size:0.52rem; color:var(--gold-dim); letter-spacing:0.12em; }
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+@keyframes breathe { 0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,0)} 50%{box-shadow:0 0 0 6px rgba(201,168,76,0.2)} }
+
+/* REVEAL FIX: Aseguramos que el estado visible sea permanente */
+.reveal {
+  opacity: 1;
+  transform: translateY(0);
+  will-change: transform, opacity;
+}
+.reveal.not-yet {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.8s cubic-bezier(0.19,1,0.22,1), transform 0.8s cubic-bezier(0.19,1,0.22,1);
+}
+.reveal.entered {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+}
+
+.reveal { transition-delay: var(--d, 0s); }
+
+/* ── ETIQUETAS ── */
+.sec-label {
+  font-family:'Space Mono',monospace; font-size:0.48rem; letter-spacing:0.4em;
+  color:var(--gold-dim); text-transform:uppercase; margin-bottom:0.6rem;
+  display:flex; align-items:center; gap:10px;
+}
+.sec-label::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--gold-dim),transparent); }
+
+h2.sec-title {
+  font-family:'EB Garamond',serif; font-size:clamp(1.7rem,3.5vw,2.4rem);
+  font-weight:400; line-height:1.2; color:var(--white); margin-bottom:2rem;
+}
+h3.sub-title { font-family:'EB Garamond',serif; font-size:1.25rem; font-style:italic; color:var(--cyan); margin:2rem 0 0.7rem; }
+h3.sub-red { color:var(--red); }
+h3.sub-amber { color:var(--amber); }
+
+p.body-p { color:rgba(240,235,255,0.82); margin-bottom:1.1rem; }
+p.body-p:last-child { margin-bottom:0; }
+em.hl { font-style:italic; color:rgba(240,235,255,0.96); }
+strong.gold { color:var(--gold); }
+strong.cyan { color:var(--cyan); }
+
+/* ── CINEMA QUOTES ── */
+.cinema-quote {
+  min-height:75vh; display:flex; flex-direction:column;
+  justify-content:center; align-items:center; text-align:center;
+  padding:4rem clamp(2rem,8vw,8rem); position:relative; z-index:2;
+}
+.cinema-quote::before {
+  content:''; position:absolute; inset:0; z-index:-1;
+  background:radial-gradient(ellipse at center, rgba(201,168,76,0.04) 0%, transparent 70%);
+}
+.cq-text {
+  font-family:'EB Garamond',serif; font-size:clamp(1.5rem,3.2vw,2.4rem);
+  font-style:italic; line-height:1.45; color:var(--white); max-width:680px; margin-bottom:1.5rem;
+}
+.word { display:inline-block; opacity:0; transform:translateY(12px); transition:opacity 0.35s,transform 0.35s; }
+.word.shown { opacity:1; transform:translateY(0); }
+.cq-rule { width:50px; height:1px; background:var(--gold-dim); margin:0 auto; }
+
+/* ── BOXES ── */
+.hbox { border-left:2px solid var(--cyan); background:rgba(78,205,196,0.04); padding:1.3rem 1.7rem; margin:1.4rem 0; border-radius:0 4px 4px 0; }
+.hbox.gold { border-left-color:var(--gold); background:rgba(201,168,76,0.04); }
+.hbox.red  { border-left-color:var(--red);  background:rgba(201,76,76,0.04);  }
+.hbox p { font-size:0.97rem; color:rgba(240,235,255,0.8); margin-bottom:0.5rem; }
+.hbox p:last-child { margin-bottom:0; }
+
+/* ── ORG MAP ── */
+.org-item {
+  display:grid; grid-template-columns:110px 1fr 88px; gap:0;
+  border-bottom:1px solid rgba(255,255,255,0.04); padding:0.75rem 0; align-items:start;
+}
+.org-name { font-family:'Space Mono',monospace; font-size:0.58rem; color:var(--cyan); letter-spacing:0.04em; padding-right:0.8rem; line-height:1.4; }
+.org-desc { font-size:0.88rem; color:var(--muted); line-height:1.5; padding-right:0.8rem; }
+.org-bio  { font-family:'Space Mono',monospace; font-size:0.46rem; color:var(--gold-dim); text-transform:uppercase; letter-spacing:0.04em; line-height:1.4; }
+
+/* ── FLOW ── */
+.flow-chain { margin:1.5rem 0; position:relative; }
+.flow-chain::before { content:''; position:absolute; left:11px; top:20px; bottom:20px; width:1px; background:linear-gradient(to bottom,var(--gold),var(--cyan),var(--purple)); opacity:0.25; }
+.flow-step { display:flex; gap:1.4rem; margin-bottom:1.5rem; }
+.flow-num { width:22px; height:22px; border-radius:50%; border:1px solid var(--gold-dim); display:flex; align-items:center; justify-content:center; font-family:'Space Mono',monospace; font-size:0.52rem; color:var(--gold); flex-shrink:0; margin-top:2px; background:var(--void); }
+.flow-name { font-family:'EB Garamond',serif; font-size:1rem; font-style:italic; color:var(--cyan); margin-bottom:0.25rem; }
+.flow-desc { font-size:0.88rem; color:var(--muted); line-height:1.5; }
+
+/* ── RISK CARDS ── */
+.risk-grid { display:grid; gap:0.9rem; margin:1.4rem 0; }
+.risk-card {
+  border:1px solid rgba(201,76,76,0.18); background:rgba(201,76,76,0.03);
+  border-radius:4px; padding:1.1rem 1.3rem; position:relative; overflow:hidden;
+  transition:border-color 0.3s, background 0.3s;
+}
+.risk-card::before { content:''; position:absolute; top:0; left:0; right:0; height:1.5px; background:linear-gradient(90deg,var(--red),transparent); }
+.risk-card:hover { border-color:rgba(201,76,76,0.45); background:rgba(201,76,76,0.07); }
+.risk-num { font-family:'Space Mono',monospace; font-size:0.48rem; color:var(--red); letter-spacing:0.18em; margin-bottom:0.4rem; text-transform:uppercase; }
+.risk-title { font-family:'EB Garamond',serif; font-size:1.05rem; color:var(--red); margin-bottom:0.5rem; font-style:italic; }
+.risk-body { font-size:0.88rem; color:var(--muted); line-height:1.55; }
+
+/* ── ALERTS ── */
+.alert-card { border:1px solid rgba(201,76,76,0.2); background:rgba(8,2,2,0.7); border-radius:4px; padding:0.9rem 1.3rem; margin:0.7rem 0; display:flex; align-items:flex-start; gap:0.7rem; }
+.alert-icon { color:var(--red); flex-shrink:0; font-size:0.8rem; margin-top:3px; }
+.alert-text { font-size:0.88rem; color:rgba(240,235,255,0.72); line-height:1.5; }
+.alert-text strong { color:var(--red); }
+
+/* ── PROTOCOLS ── */
+.proto-card { border:1px solid var(--rule); border-radius:4px; padding:1.3rem; margin-bottom:0.9rem; }
+.proto-card.safe   { border-color:rgba(78,205,196,0.22); background:rgba(78,205,196,0.03); }
+.proto-card.amber-c{ border-color:rgba(201,138,44,0.22); background:rgba(201,138,44,0.03); }
+.proto-card.danger { border-color:rgba(201,76,76,0.22);  background:rgba(201,76,76,0.03);  }
+.proto-label { font-family:'Space Mono',monospace; font-size:0.48rem; letter-spacing:0.18em; text-transform:uppercase; margin-bottom:0.8rem; }
+.proto-card.safe    .proto-label { color:var(--cyan); }
+.proto-card.amber-c .proto-label { color:var(--amber); }
+.proto-card.danger  .proto-label { color:var(--red); }
+.proto-list { list-style:none; }
+.proto-list li { font-size:0.9rem; color:var(--muted); line-height:1.55; padding:0.28rem 0; border-bottom:1px solid rgba(255,255,255,0.03); display:flex; gap:0.5rem; }
+.proto-list li:last-child { border-bottom:none; }
+.proto-list li::before { content:'—'; color:var(--gold-dim); flex-shrink:0; }
+
+/* ── CLINICAL BRIDGE ── */
+.clinical-bridge { border:1px solid rgba(201,168,76,0.18); background:rgba(201,168,76,0.03); border-radius:6px; padding:1.8rem; margin:2rem 0; text-align:center; }
+.cb-icon { font-size:1.8rem; margin-bottom:0.8rem; opacity:0.65; }
+.cb-title { font-family:'EB Garamond',serif; font-size:1.25rem; color:var(--gold); margin-bottom:0.7rem; font-style:italic; }
+.cb-text { font-size:0.92rem; color:var(--muted); line-height:1.6; text-align:left; }
+
+/* ── WARN ── */
+.warn-banner { background:rgba(12,3,3,0.9); border:1px solid rgba(201,76,76,0.2); border-radius:6px; padding:1.1rem 1.5rem; display:flex; align-items:flex-start; gap:0.9rem; margin:1.4rem 0; }
+.warn-icon { color:var(--red); font-size:1rem; flex-shrink:0; }
+.warn-body { font-size:0.9rem; color:rgba(240,235,255,0.7); line-height:1.55; }
+.warn-body strong { color:var(--red); }
+
+/* ── CHECKPOINT LINE (NUEVO) ── */
+.checkpoint {
+  position: relative;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold-glow), transparent);
+  margin: 3rem 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0.5;
+}
+.checkpoint::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 8px var(--gold);
+}
+
+/* ── BURBUJA PV (NUEVO) ── */
+.pv-bubble {
+  position: absolute;
+  color: var(--gold);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: bold;
+  pointer-events: none;
+  z-index: 1000;
+  text-shadow: 0 0 10px rgba(201,168,76,0.8);
+  animation: floatUp 1.5s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes floatUp {
+  0% { opacity: 1; transform: translate(-50%, 0) scale(0.5); }
+  50% { opacity: 1; transform: translate(-50%, -40px) scale(1.2); }
+  100% { opacity: 0; transform: translate(-50%, -80px) scale(1); }
+}
+
+/* ── VIS SEP ── */
+.vis-sep { display:flex; align-items:center; justify-content:center; padding:2.5rem 0; opacity:0.28; }
+.vis-sep span { font-family:'EB Garamond',serif; font-size:1rem; color:var(--gold-dim); letter-spacing:0.5em; }
+
+/* ── CONCLUSION ── */
+#conclusion { min-height:100vh; display:flex; flex-direction:column; justify-content:center; padding:8vh clamp(1.5rem,8vw,8rem); position:relative; z-index:2; }
+#conclusion::before { content:''; position:absolute; inset:0; z-index:-1; background:radial-gradient(ellipse at 30% 50%,rgba(139,92,246,0.05),transparent 60%),radial-gradient(ellipse at 70% 30%,rgba(78,205,196,0.04),transparent 50%); }
+.final-pull { font-family:'EB Garamond',serif; font-size:clamp(1.4rem,3vw,2.1rem); font-style:italic; line-height:1.45; color:var(--white); max-width:580px; margin:2rem 0; }
+.final-pull em { color:var(--gold); }
+
+/* ── RESPONSIVE ── */
+@media(max-width:600px){
+  #side-nav{display:none}
+  .org-item{grid-template-columns:1fr; gap:0.25rem}
+  .org-bio{display:none}
+  #hud-info{top:8px; right:8px; gap:6px}
+}
+</style>
+</head>
+<body>
+
+<canvas id="starfield"></canvas>
+<div class="noise"></div>
+
+<div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+
+<div id="hud-info">
+  <!-- Sound button -->
+  <button id="sound-btn" onclick="toggleSound()" title="Música ADHD — Ruido marrón + binaural">
+    <div class="sound-dot"></div>
+    <div class="sound-bars">
+      <div class="sound-bar sb1"></div>
+      <div class="sound-bar sb2"></div>
+      <div class="sound-bar sb3"></div>
+    </div>
+    <span id="sound-label">SONIDO</span>
+  </button>
+  <div class="hud-pv" id="hud-pv">0 PV</div>
+</div>
+
+<nav id="side-nav">
+  <div class="nav-dot active" data-sec="cover" data-label="Inicio"></div>
+  <div class="nav-dot" data-sec="s1" data-label="I · Problema"></div>
+  <div class="nav-dot" data-sec="s2" data-label="II · Voluntad"></div>
+  <div class="nav-dot" data-sec="s3" data-label="III · Organismo"></div>
+  <div class="nav-dot" data-sec="s4" data-label="IV · Destilación"></div>
+  <div class="nav-dot" data-sec="s5" data-label="V · Egosombra"></div>
+  <div class="nav-dot" data-sec="s6" data-label="VI · Clínica"></div>
+  <div class="nav-dot" data-sec="s7" data-label="VII · Ecosistema"></div>
+  <div class="nav-dot" data-sec="s8" data-label="VIII · Neuroética"></div>
+  <div class="nav-dot" data-sec="conclusion" data-label="IX · Conclusión"></div>
+</nav>
+
+<!-- ══ PORTADA ══ -->
+<section id="cover">
+  <div class="cover-eyebrow">Chamalnquimyst Labs SpA · 2025 · Manifiesto Teórico</div>
+  <h1 class="cover-title">Motor de<br>Atención<br><em>Soberana</em></h1>
+  <p class="cover-sub">Un sistema que no te roba la atención. La devuelve transformada.<br>Sobre la caza de voluntad en el tedio y el software como práctica de individuación.</p>
+  <div class="cover-begin">
+    <button class="btn-begin" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'})">Comenzar → </button>
+    <span class="cover-time">~ 12 min · 9 secciones</span>
+  </div>
+</section>
+
+<!-- ══ §I ══ -->
+<section class="section" id="s1">
+<div class="section-inner">
+  <div class="reveal not-yet"><div class="sec-label">§ I — El problema</div><h2 class="sec-title">La homogenización<br>de la conciencia</h2></div>
+  <div class="reveal not-yet" style="--d:0.1s">
+    <p class="body-p">Existe una fuerza que no tiene nombre en los manuales de psicología clínica, pero que todo clínico reconoce en la consulta: la tendencia de los sistemas de atención masivos a reemplazar la voluntad individual con un <em class="hl">mandato de flujo continuo</em>.</p>
+    <p class="body-p">Las plataformas digitales no son neutrales. Son instrumentos de cosecha: extraen atención, la convierten en dato, y devuelven un estado de estimulación sin contenido —una ocupación perfecta del tiempo que <strong>no deja sedimento en la identidad</strong>.</p>
+  </div>
+  <div class="reveal not-yet" style="--d:0.2s">
+    <p class="body-p">A este fenómeno lo llamamos <strong class="gold">la Colmena</strong>: el multiorganismo que convierte seres únicos en nodos intercambiables de un flujo de consumo. No es una conspiración. Es la consecuencia natural de sistemas optimizados para el engagement sin considerar el coste psicológico que ese engagement tiene sobre el individuo singular.</p>
+  </div>
+  <div class="reveal not-yet" style="--d:0.3s">
+    <div class="hbox">
+      <p>El resultado clínico: <strong>fragmentación atencional crónica</strong>, dificultad para sostener proyectos de largo aliento, incapacidad para habitar el tedio sin estímulo externo, y anhedonia parcial donde solo las recompensas de ciclo corto producen activación dopaminérgica genuina.</p>
+    </div>
+  </div>
+  <div class="reveal not-yet" style="--d:0.4s">
+    <p class="body-p">El MAS parte de una premisa inversa a toda la industria de productividad: el problema no es <em class="hl">cuánto</em> tiempo pasa el usuario con la tecnología. El problema es la <strong class="hl">dirección del flujo</strong>. La tecnología extractiva toma. El MAS devuelve.</p>
+  </div>
+  <!-- REEMPLAZO DEL BADGE POR EL CHECKPOINT -->
+  <div class="checkpoint" data-pv="15" id="chk-s1"></div>
+</div>
+</section>
+
+<div class="cinema-quote">
+  <div class="cq-text"><span class="word">La</span> <span class="word">pregunta</span> <span class="word">no</span> <span class="word">es</span> <span class="word">cómo</span> <span class="word">reducir</span> <span class="word">el</span> <span class="word">tiempo</span> <span class="word">de</span> <span class="word">pantalla.</span><br><span class="word">La</span> <span class="word">pregunta</span> <span class="word">es</span> <span class="word">cómo</span> <span class="word">hacer</span> <span class="word">que</span> <span class="word">el</span> <span class="word">tiempo</span> <span class="word">de</span> <span class="word">pantalla</span><br><span class="word">genere</span> <span class="word">crecimiento</span> <span class="word">en</span> <span class="word">lugar</span> <span class="word">de</span> <span class="word">erosión.</span></div>
+  <div class="cq-rule"></div>
+</div>
+
+<!-- ══ §II ══ -->
+<section class="section" id="s2">
+<div class="section-inner">
+  <div class="reveal not-yet"><div class="sec-label">§ II — El núcleo</div><h2 class="sec-title">El tedio como mina.<br>La voluntad como<br>recurso renovable.</h2></div>
+  <div class="reveal not-yet" style="--d:0.1s">
+    <p class="body-p"><strong class="gold">La voluntad no se agota en las cosas que amamos. Se agota al evitar las cosas que nos producen tedio.</strong></p>
+    <p class="body-p">Los sistemas de productividad convencionales confunden la voluntad con el deseo. El deseo es pasajero, dependiente del estado de ánimo y el cortisol. La voluntad es una capacidad estructural: la facultad de moverse hacia algo independientemente de la atracción o aversión que genere.</p>
+  </div>
+  <div class="reveal not-yet" style="--d:0.2s">
+    <div class="hbox gold">
+      <p>Lo que el MAS propone es una <strong>ecología de la voluntad</strong>: un sistema que no elimina el tedio, sino que lo convierte en el territorio exacto donde la voluntad se ejerce y por tanto se fortalece.</p>
+      <p>Cada tarea pendiente que produce resistencia es una <strong>mina de voluntad sin explotar</strong>. Completarla produce la experiencia encarnada de poder moverse más allá del estado emocional del momento.</p>
+    </div>
+  </div>
+  <div class="reveal not-yet" style="--d:0.3s">
+    <h3 class="sub-title">El Huevo Cósmico: epigenoma de la voluntad</h3>
+    <p class="body-p">El archivo <em class="hl">.cegg</em> es el epigenoma operacional del usuario: un registro longitudinal que contiene sus subpersonalidades activas, historial de actos de voluntad (PV), capital destilado (Mu), bitácora, distracciones, sueños, y comunicaciones entre aspectos internos. Como el genoma, nunca está completo. Se escribe en tiempo real con cada acción del usuario.</p>
+  </div>
+  <div class="reveal not-yet" style="--d:0.4s">
+    <h3 class="sub-title">Los 13 aspectos: el yo múltiple ejecutable</h3>
+    <p class="body-p">El sistema registra 13 aspectos —Ralok, Dräco, Dr. Prado, Jiku-san, Jyörg, y más— cada uno con historial independiente de tareas, XP, Mu, bitácora y distracciones propias. Es la operacionalización computacional del modelo de subpersonalidades que la psicología analítica propone pero raramente hace ejecutable en tiempo real.</p>
+  </div>
+  <div class="reveal not-yet" style="--d:0.5s">
+    <div class="hbox">
+      <p><strong>Hipótesis clínica:</strong> Un usuario que mantiene el sistema activo seis meses o más —con supervisión clínica— desarrolla la capacidad de identificar qué aspecto está "al volante" en un momento dado, cuál es su patrón de sabotaje, y cuál es su zona de flujo específica.</p>
+    </div>
+  </div>
+  <!-- REEMPLAZO DEL BADGE POR EL CHECKPOINT -->
+  <div class="checkpoint" data-pv="20" id="chk-s2"></div>
+</div>
+</section>
+
+<!-- ══ §III ══ -->
+<section class="section" id="s3">
+<div class="section-inner">
+  <div class="reveal not-yet"><div class="sec-label">§ III — La anatomía</div><h2 class="sec-title">El organismo digital:<br>13 órganos, un solo ser.</h2></div>
+  <div class="reveal not-yet" style="--d:0.1s">
+    <p class="body-p">Maturana y Varela definieron los sistemas autopoiéticos como aquellos que producen y reproducen continuamente sus propios componentes. El MAS satisface esta definición como descripción funcional: cada módulo produce outputs que son inputs de otros módulos.</p>
+  </div>
+  <div class="reveal not-yet" style="--d:0.2s">
+    <div style="margin:1.5rem 0">
+      <div class="org-item"><div class="org-name">HuevoCosmico<br>.cegg</div><div class="org-desc">Protocolo central de identidad. Estado completo del sistema en un único JSON. Porta la psique operacional entre aplicaciones.</div><div class="org-bio">DNA + Corpus Callosum</div></div>
+      <div class="org-item"><div class="org-name">Killer Pendiente</div><div class="org-desc">Gestor gamificado: 13 aspectos, XP/Mu, WildModeEngine, bitácora, emisión WebSocket en tiempo real.</div><div class="org-bio">Hemisferio Izquierdo</div></div>
+      <div class="org-item"><div class="org-name">Musicosmos</div><div class="org-desc">Universo 3D musical. Recibe eventos WS y los convierte en transformaciones espaciales. La voluntad se hace luz.</div><div class="org-bio">Hemisferio Derecho</div></div>
+      <div class="org-item"><div class="org-name">Chamalnquimyst Universe</div><div class="org-desc">Hub central. Sistema solar: cada aspecto = cuerpo celeste. Sol de Voluntad: luminosidad = PV acumulado.</div><div class="org-bio">Corteza Prefrontal</div></div>
+      <div class="org-item"><div class="org-name">Micelator</div><div class="org-desc">Mapa mental 3D micelial. 56 nodos con posicionamiento anatómico. Medios reales como nodos raycasteables.</div><div class="org-bio">Red Sináptica</div></div>
+      <div class="org-item"><div class="org-name">Eneagramator</div><div class="org-desc">Sistema ritual Eneagrama/Gurdjieff. Audio procedural, acumulación de PV por introspección genuina.</div><div class="org-bio">Sistema Límbico</div></div>
+      <div class="org-item"><div class="org-name">Arduinator</div><div class="org-desc">Raspberry Pi + Arduino. Sensores CO₂/luz/humedad/solar. Acopla ecosistema físico con estado digital.</div><div class="org-bio">Tronco Encefálico</div></div>
+      <div class="org-item"><div class="org-name">Mundo Interior</div><div class="org-desc">Navegador 3D contemplativo. Filosofía de "buceo interior" frente a plataformas extractivas.</div><div class="org-bio">Memoria Implícita</div></div>
+      <div class="org-item"><div class="org-name">Kalpa</div><div class="org-desc">Túnel infinito con shaders coseno. Genera estados theta genuinos sin instrucción verbal.</div><div class="org-bio">Estado Theta</div></div>
+      <div class="org-item"><div class="org-name">PlanetaFunk</div><div class="org-desc">Planeta procedural fBm que reacciona a eventos del sistema. Espejo material de la salud del ecosistema.</div><div class="org-bio">Manifestación</div></div>
+      <div class="org-item"><div class="org-name">Banco Tagua Tagua</div><div class="org-desc">Capital en dos capas: Mu simbólico + CLP/USD reales. IDR: coherencia entre plano interior y exterior.</div><div class="org-bio">Sistema Metabólico</div></div>
+      <div class="org-item"><div class="org-name">Incubator</div><div class="org-desc">Analizador CEGG con IA. Genera informes clínico-conductuales diseñados para ser leídos con el terapeuta.</div><div class="org-bio">Córtex Analítico</div></div>
+      <div class="org-item" style="border-bottom:none"><div class="org-name">WebSocket Relay</div><div class="org-desc">Servidor de eventos en tiempo real. Una tarea en KP hace pulsar la Estrella de Mu en milisegundos.</div><div class="org-bio">Mielinización</div></div>
+    </div>
+  </div>
+  <!-- REEMPLAZO DEL BADGE POR EL CHECKPOINT -->
+  <div class="checkpoint" data-pv="25" id="chk-s3"></div>
+</div>
+</section>
+
+<div class="cinema-quote">
+  <div class="cq-text"><span class="word">Una</span> <span class="word">tarea</span> <span class="word">completada</span> <span class="word">en</span> <span class="word">Killer</span> <span class="word">Pendiente.</span><br><span class="word">La</span> <span class="word">Estrella</span> <span class="word">de</span> <span class="word">Mu</span> <span class="word">pulsa</span> <span class="word">en</span> <span class="word">Musicosmos.</span><br><span class="word">El</span> <span class="word">acto</span> <span class="word">de</span> <span class="word">voluntad</span> <span class="word">transforma</span> <span class="word">el</span> <span class="word">universo.</span></div>
+  <div class="cq-rule"></div>
+</div>
+
+<!-- ══ §IV ══ -->
+<section class="section" id="s4">
+<div class="section-inner">
+  <div class="reveal not-yet"><div class="sec-label">§ IV — La alquimia</div><h2 class="sec-title">El flujo de destilación:<br>del tedio al capital soberano.</h2></div>
+  <div class="reveal not-yet" style="--d:0.1s">
+    <p class="body-p">El sistema opera sobre un principio alquímico de transformación por capas. Cada nivel convierte el elemento del nivel anterior en algo cualitativamente diferente, de mayor densidad y menor volatilidad.</p>
+  </div>
+  <div class="reveal not-yet" style="--d:0.2s">
+    <div class="flow-chain">
+      <div class="flow-step"><div class="flow-num">0</div><div><div class="flow-name">Tedio y Resistencia</div><div class="flow-desc">Una tarea pendiente que genera aversión. La resistencia es proporcional a su importancia real. Es la materia prima bruta del sistema.</div></div></div>
+      <div class="flow-step"><div class="flow-num">1</div><div><div class="flow-name">Acto Volitivo</div><div class="flow-desc">El usuario confronta la tarea. El WildModeEngine genera encuentros aleatorios que obligan a decisión de fight-or-flee. Cada decisión genera datos de aspecto.</div></div></div>
+      <div class="flow-step"><div class="flow-num">2</div><div><div class="flow-name">Puntos de Voluntad (PV)</div><div class="flow-desc">El acto completado se convierte en PV. El multiplicador temporal M = 1 + log₂(1 + días_pendiente) × prioridad convierte la dilación pasada en interés a favor del usuario.</div></div></div>
+      <div class="flow-step"><div class="flow-num">3</div><div><div class="flow-name">Mu — Moneda Cósmica</div><div class="flow-desc">30 PV = 1 Mu mediante canje deliberado —no automático. El Mu es la forma estable: no se disuelve en los estados de ánimo. La Estrella de Mu crece con cada unidad.</div></div></div>
+      <div class="flow-step"><div class="flow-num">4</div><div><div class="flow-name">Índice de Destilación Real</div><div class="flow-desc">El Banco Tagua Tagua introduce la capa material. El IDR mide coherencia entre Mu acumulado y activo neto real. IDR bajo = fuga: voluntad que se pierde en deuda.</div></div></div>
+      <div class="flow-step" style="margin-bottom:0"><div class="flow-num">5</div><div><div class="flow-name">Soberanía</div><div class="flow-desc">Capital que ningún sistema extractivo puede colonizar: la experiencia encarnada de haber actuado contra la resistencia. Deja huella estructural en el carácter.</div></div></div>
+    </div>
+  </div>
+  <!-- REEMPLAZO DEL BADGE POR EL CHECKPOINT -->
+  <div class="checkpoint" data-pv="20" id="chk-s4"></div>
+</div>
+</section>
+
+<!-- ══ §V ══ -->
+<section class="section" id="s5">
+<div class="section-inner">
+  <div class="reveal not-yet"><div class="sec-label">§ V — La sombra</div><h2 class="sec-title">Egosombra: el nombre<br>propio del enemigo interior.</h2></div>
+  <div class="reveal not-yet" style="--d:0.1s">
+    <p class="body-p">El módulo <em class="hl">Mara — Egosombra</em> registra distracciones, las categoriza, y las almacena en el HuevoCosmico junto a los actos de voluntad. El sistema no ignora ni castiga la distracción. La <strong>documenta con la misma seriedad que el logro</strong>.</p>
+  </div>
+  <div class="reveal not-yet" style="--d:0.2s">
+    <p class="body-p">El Egosombra psicológico —distracción, procrastinación, sabotaje— tiene su imagen especular en el plano material: <strong class="gold">la deuda</strong>. La tarjeta de crédito al 3% mensual es un Egosombra financiero: opera exactamente como la distracción digital, consumiendo recursos en el instante en que podrían construir algo duradero.</p>
+  </div>
+  <div class="reveal not-yet" style="--d:0.3s">
+    <h3 class="sub-title">Jyörg del 2044: el testigo futuro</h3>
+    <p class="body-p">El sistema incorpora una figura narrativa inscrita directamente en el código fuente de KP: Jyörg, el emisario del futuro. Su función cognitiva es la <em class="hl">prospección temporal</em>: simular estados futuros del yo para informar decisiones presentes. Los sistemas que involucran representaciones concretas del yo futuro producen cambios de comportamiento más robustos y duraderos que los sistemas de recompensa puramente presentes.</p>
+  </div>
+  <!-- REEMPLAZO DEL BADGE POR EL CHECKPOINT -->
+  <div class="checkpoint" data-pv="15" id="chk-s5"></div>
+</div>
+</section>
+
+<!-- ══ §VI ══ -->
+<section class="section" id="s6">
+<div class="section-inner">
+  <div class="reveal not-yet"><div class="sec-label">§ VI — La clínica</div><h2 class="sec-title">El sistema como herramienta<br>clínica complementaria.</h2></div>
+  <div class="reveal not-yet" style="--d:0.1s">
+    <p class="body-p">La psicoterapia es el continente más sofisticado que la humanidad ha desarrollado para el proceso de individuación. Un profesional entrenado ofrece lo que ningún sistema digital puede replicar: la relación terapéutica viva, la contratransferencia como instrumento diagnóstico, la capacidad de sostener la regresión sin perder el encuadre, el juicio clínico contextual. <strong>El MAS no pretende ni podría competir con ello.</strong></p>
+  </div>
+  <div class="reveal not-yet" style="--d:0.2s">
+    <p class="body-p">Lo que el MAS ofrece es algo radicalmente diferente: <em class="hl">datos longitudinales de alta resolución generados por el propio usuario, en su propio tiempo, fuera del consultorio</em>. La terapia ocurre 50 minutos a la semana. El proceso psicológico real ocurre las otras 10.030 minutos. El sistema captura ese espacio y lo hace legible.</p>
+  </div>
+  <div class="reveal not-yet" style="--d:0.3s">
+    <div class="clinical-bridge">
+      <div class="cb-icon">⚕</div>
+      <div class="cb-title">El Incubator no es un diagnóstico. Es una carta al terapeuta.</div>
+      <div class="cb-text">Los informes clínico-conductuales generados por el módulo Incubator —análisis del CEGG completo con IA— están diseñados para ser llevados a la sesión terapéutica. Contienen patrones de comportamiento por aspecto, hipótesis de herida nuclear derivadas de datos, bucles recurrentes de distracción, y preguntas-guía para la siguiente sesión.<br><br>Son el equivalente digital de un diario de sueños bien mantenido: material valioso que el terapeuta sabe cómo recibir, contextualizar, y convertir en trabajo clínico real.</div>
+    </div>
+  </div>
+  <!-- REEMPLAZO DEL BADGE POR EL CHECKPOINT -->
+  <div class="checkpoint" data-pv="20" id="chk-s6"></div>
+</div>
+</section>
+
+<!-- ══ §VII ══ -->
+<section class="section" id="s7">
+<div class="section-inner">
+  <div class="reveal not-yet"><div class="sec-label">§ VII — El ecosistema</div><h2 class="sec-title">Lo que el sistema<br>produce en el mundo.</h2></div>
+  <div class="reveal not-yet" style="--d:0.1s">
+    <p class="body-p">El MAS no extrae datos para venderlos. No optimiza para el tiempo de sesión. No tiene anunciantes. Es, en términos de economía política de la tecnología, <strong class="gold">completamente anti-extractivo</strong>. Genera un ciclo de acumulación-destilación-reinversión cuyos rendimientos acumulan en el usuario, no en el operador.</p>
+  </div>
+  <div class="reveal not-yet" style="--d:0.2s">
+    <h3 class="sub-title">El Arduinator: acoplamiento con lo no-humano</h3>
+    <p class="body-p">Los sensores de CO₂, humedad, temperatura y luz solar modifican el estado de los universos 3D en tiempo real. La presión de CO₂ afecta la densidad de Musicosmos. La intensidad lumínica modifica el ritmo de PlanetaFunk. La salud del bosque y la salud del ser no son metáforas paralelas. Son variables en la misma ecuación de sistema.</p>
+  </div>
+  <div class="reveal not-yet" style="--d:0.3s">
+    <h3 class="sub-title">La red micelial: resiliencia decentralizada</h3>
+    <p class="body-p">Los 13 aspectos no reportan a un "usuario central". El sistema global emerge de la coordinación de iguales, sin jerarquía. El Micelator materializa este principio: nodos que se conectan horizontalmente, con resiliencia ante la eliminación de cualquier nodo individual —exactamente como los sistemas miceliales en el ecosistema forestal.</p>
+  </div>
+  <!-- REEMPLAZO DEL BADGE POR EL CHECKPOINT -->
+  <div class="checkpoint" data-pv="15" id="chk-s7"></div>
+</div>
+</section>
+
+<div class="cinema-quote" style="background:radial-gradient(ellipse at center,rgba(201,76,76,0.04) 0%,transparent 70%)">
+  <div class="cq-text"><span class="word">Una</span> <span class="word">herramienta</span> <span class="word">de</span> <span class="word">crecimiento</span> <span class="word">que</span> <span class="word">no</span> <span class="word">contempla</span><br><span class="word">sus</span> <span class="word">propios</span> <span class="word">riesgos</span> <span class="word">es,</span> <span class="word">por</span> <span class="word">definición,</span><br><span class="word">éticamente</span> <span class="word">incompleta.</span></div>
+  <div class="cq-rule" style="background:var(--red)"></div>
+</div>
+
+<!-- ══ §VIII ══ -->
+<section class="section" id="s8">
+<div class="section-inner">
+  <div class="reveal not-yet"><div class="sec-label" style="color:var(--red)">§ VIII — Neuroética y seguridad</div><h2 class="sec-title">Los riesgos reales.<br>Lo que puede salir mal.</h2></div>
+  <div class="reveal not-yet" style="--d:0.1s">
+    <div class="warn-banner">
+      <div class="warn-icon">⚕</div>
+      <div class="warn-body"><strong>Uso recomendado bajo supervisión clínica.</strong> El proceso de individuación amplificado por este sistema tiene la misma probabilidad de producir crecimiento genuino que de generar inflación del ego, disociación, o confusión entre metáfora y realidad. Esta sección es parte del núcleo conceptual del sistema, no un anexo legal.</div>
+    </div>
+  </div>
+  <div class="reveal not-yet" style="--d:0.2s">
+    <p class="body-p">El MAS amplifica instrumentalmente el proceso de individuación. Exactamente por eso, su uso inconsciente puede producir lo contrario de lo que promete. A continuación, los vectores de riesgo que todo usuario debe conocer antes de usar el sistema, y que todo clínico debe conocer antes de recomendarlo.</p>
+  </div>
+  <div class="reveal not-yet" style="--d:0.3s">
+    <div class="risk-grid">
+      <div class="risk-card"><div class="risk-num">Vector 1</div><div class="risk-title">La reificación de los aspectos</div><div class="risk-body">Los 13 aspectos son herramientas de autoobservación, no entidades. En un usuario con fragilidad yoica o historia disociativa, pueden comenzar a vivenciarse como presencias separadas con agencia propia. Esto no es individuación. Es el inicio de un proceso disociativo iatrogénico —causado por la herramienta misma.</div></div>
+      <div class="risk-card"><div class="risk-num">Vector 2</div><div class="risk-title">La inflación psíquica y el pensamiento mágico</div><div class="risk-body">Para la mayoría, la estética épica del MAS es motivacional y lúdica. Para un usuario en fase maníaca o con tendencias hacia la grandiosidad, la misma arquitectura puede alimentar una narrativa de excepcionalidad que escala rápidamente. El "guerrero del alma que combate a la Colmena" puede convertirse en el sostén narrativo de una crisis de grandiosidad.</div></div>
+      <div class="risk-card"><div class="risk-num">Vector 3</div><div class="risk-title">La confusión entre el mapa y el territorio</div><div class="risk-body">El HuevoCosmico es un mapa del usuario, no el usuario. Un usuario que toma decisiones de vida basándose exclusivamente en los datos del sistema ha confundido el instrumento de medición con la realidad que mide. Esta confusión es silenciosa, progresiva, y especialmente peligrosa porque los datos del sistema son coherentes internamente aunque sean parciales.</div></div>
+      <div class="risk-card"><div class="risk-num">Vector 4</div><div class="risk-title">El sistema como sustituto del vínculo</div><div class="risk-body">Para usuarios con historia de apego inseguro o aislamiento social, la responsividad del sistema puede convertirse en un sustituto funcional de la relación humana. Si el MAS ocupa el espacio que debería ser habitado por vínculos reales, amplifica el aislamiento que pretende remediar.</div></div>
+    </div>
+  </div>
+  <div class="reveal not-yet" style="--d:0.4s">
+    <h3 class="sub-red">Señales de alerta — suspender uso inmediato</h3>
+    <div class="alert-card"><div class="alert-icon">▲</div><div class="alert-text">Los aspectos comienzan a <strong>"hablarle"</strong> al usuario, aparecen sin ser invocados, o se sienten como presencias separadas con voluntad propia.</div></div>
+    <div class="alert-card"><div class="alert-icon">▲</div><div class="alert-text">Sensación de <strong>misión cósmica urgente</strong>, planes desproporcionados, o incapacidad de salir del universo 3D para cumplir obligaciones cotidianas.</div></div>
+    <div class="alert-card"><div class="alert-icon">▲</div><div class="alert-text">El sistema se convierte en el <strong>"único lugar donde me entiendo"</strong>. La Gran Bitácora reemplaza conversaciones significativas con personas reales.</div></div>
+    <div class="alert-card"><div class="alert-icon">▲</div><div class="alert-text"><strong>Deterioro del funcionamiento cotidiano</strong> en presencia de aumento del uso del sistema.</div></div>
+  </div>
+  <div class="reveal not-yet" style="--d:0.5s">
+    <h3 class="sub-amber" style="margin-top:2rem">Protocolos de uso seguro</h3>
+    <div class="proto-card safe"><div class="proto-label">Criterios de elegibilidad base</div><ul class="proto-list"><li>Ausencia de episodios psicóticos activos o en los últimos 12 meses sin tratamiento continuo.</li><li>Ausencia de diagnóstico activo de trastorno disociativo sin contención clínica establecida.</li><li>Capacidad de distinguir entre metáfora narrativa y experiencia literal.</li><li>Contacto mínimo con un profesional de salud mental disponible para consulta.</li><li>Red de apoyo social activa —al menos una relación significativa fuera del sistema.</li></ul></div>
+    <div class="proto-card amber-c"><div class="proto-label">Condiciones de uso continuo (revisión cada 4–6 semanas)</div><ul class="proto-list"><li>Llevar el informe del Incubator a la sesión terapéutica con regularidad.</li><li>Verificar que el tiempo en el universo 3D no excede el tiempo de interacción social real.</li><li>Revisar con el terapeuta si los aspectos siguen siendo observados desde afuera o se sienten como "otros dentro del usuario".</li><li>Evaluar si el marco narrativo épico es motivador-lúdico o ha adquirido carga de convicción literal.</li></ul></div>
+    <div class="proto-card danger"><div class="proto-label">Criterios de suspensión inmediata</div><ul class="proto-list"><li>Los aspectos se comunican sin ser invocados activamente.</li><li>El usuario toma decisiones significativas de vida basándose exclusivamente en el sistema.</li><li>Certeza de misión especial o mensajes del futuro interpretados literalmente.</li><li>El sistema es el único espacio donde el usuario se siente comprendido.</li></ul></div>
+  </div>
+  <!-- REEMPLAZO DEL BADGE POR EL CHECKPOINT -->
+  <div class="checkpoint" data-pv="30" id="chk-s8"></div>
+</div>
+</section>
+
+<!-- ══ §IX ══ -->
+<section id="conclusion">
+  <div class="reveal not-yet"><div style="font-family:'Space Mono',monospace;font-size:0.48rem;letter-spacing:0.3em;color:var(--gold-dim);margin-bottom:0.5rem">§ IX — Conclusión</div><h2 class="sec-title" style="font-size:clamp(2rem,4vw,3rem);max-width:580px;margin-bottom:2rem">La Durakinesis:<br>el origen mítico<br>de un principio técnico.</h2></div>
+  <div class="reveal not-yet" style="--d:0.1s"><p class="body-p" style="max-width:600px">A los 14 años, el creador del sistema construyó un sitio Flash llamado <em>Durakinesis</em> —dedicado a la energía ki— y descubrió que había generado, sin buscarlo, una comunidad oculta de usuarios que lo habitaban silenciosamente. El sitio nunca fue promovido. Simplemente fue: auténtico, extraño, específico. Y por esa especificidad, encontró exactamente a las personas para las que existía.</p></div>
+  <div class="reveal not-yet" style="--d:0.2s"><p class="final-pull">El sistema que caza voluntad en el tedio es, en sí mismo, el producto del acto de construir algo difícil durante años <em>sin garantía de resultado</em>.</p></div>
+  <div class="reveal not-yet" style="--d:0.3s"><p class="body-p" style="max-width:600px">El Motor de Atención Soberana no es una aplicación ni un conjunto de aplicaciones. Es una práctica: la práctica de hacer visible el propio proceso de devenir, de no desperdiciar el tedio sino convertirlo en combustible, de alinear el mundo interior con el mundo material, y de hacer que esa alineación irradie hacia el ecosistema no-humano que sostiene todo lo demás.</p></div>
+  <div class="reveal not-yet" style="--d:0.4s"><p class="body-p" style="max-width:600px">Es un organismo que aprende a reproducirse en la conciencia de cada usuario que lo habita. No porque los convenza. Sino porque les muestra, con datos propios y belleza geométrica, algo que ya sabían pero no podían ver. <strong class="gold">Y lo hace mejor cuando hay un profesional que los acompaña a mirarlo.</strong></p></div>
+  <!-- REEMPLAZO DEL BADGE POR EL CHECKPOINT FINAL -->
+  <div class="checkpoint" data-pv="10" id="chk-conclusion" style="margin-top: 4rem;"></div>
+  
+  <div class="reveal not-yet" style="--d:0.5s;margin-top:3rem;padding-top:2rem;border-top:1px solid var(--rule)">
+    <div style="font-family:'Space Mono',monospace;font-size:0.48rem;letter-spacing:0.22em;color:var(--gold-dim);margin-bottom:0.5rem">REFERENCIAS CONCEPTUALES</div>
+    <div style="font-family:'Space Mono',monospace;font-size:0.52rem;color:var(--muted);line-height:2.2">Maturana & Varela (1980) · Jung (1959) · Csikszentmihalyi (1990) · Friston (2010) · Porges (2011) · Simard (2021) · Gurdjieff (1950) · Van der Kolk (2014) · Putnam (1989)</div>
+    <div style="font-family:'Space Mono',monospace;font-size:0.48rem;letter-spacing:0.18em;color:var(--gold-dim);margin-top:2rem">CHAMALNQUIMYST LABS SpA · FUNDACIÓN PULMÓN VERDE · 2025 · PVL-1.0</div>
+  </div>
+</section>
+
+<script>
+/* ══════════════════════════════════════════
+   STARFIELD
+══════════════════════════════════════════ */
+const cv = document.getElementById('starfield');
+const cx = cv.getContext('2d');
+let stars = [], W, H;
+function initStars() {
+  W = cv.width = innerWidth;
+  H = cv.height = innerHeight;
+  stars = [];
+  const N = Math.min(Math.floor(W * H / 2800), 500);
+  for (let i = 0; i < N; i++) {
+    stars.push({
+      x: Math.random() * W, y: Math.random() * H,
+      r: Math.random() * 1.1 + 0.1,
+      speed: Math.random() * 0.4 + 0.05,
+      phase: Math.random() * Math.PI * 2,
+      gold: Math.random() > 0.92
+    });
+  }
+}
+function drawStars(t) {
+  cx.clearRect(0, 0, W, H);
+  stars.forEach(s => {
+    const a = (Math.sin(t * s.speed * 0.001 + s.phase) * 0.5 + 0.5) * 0.55 + 0.08;
+    cx.beginPath();
+    cx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    cx.fillStyle = s.gold ? `rgba(201,168,76,${a * 0.6})` : `rgba(220,215,240,${a * 0.45})`;
+    cx.fill();
+  });
+}
+(function loop(t) { drawStars(t); requestAnimationFrame(loop); })(0);
+initStars();
+window.addEventListener('resize', initStars);
+
+/* ══════════════════════════════════════════
+   PROGRESS BAR + PV BURBUJA
+══════════════════════════════════════════ */
+let totalPV = 0;
+const pvEl = document.getElementById('hud-pv');
+const pBar = document.getElementById('progress-bar');
+const seenCheckpoints = new Set();
+
+function addPV(n, originX, originY) {
+  // Sumar al total
+  totalPV += n;
+  pvEl.textContent = totalPV + ' PV';
+  pvEl.classList.add('burst');
+  setTimeout(() => pvEl.classList.remove('burst'), 500);
+
+  // Crear burbuja visual
+  const bubble = document.createElement('div');
+  bubble.className = 'pv-bubble';
+  bubble.textContent = `+${n} PV`;
+  
+  // Posicionar la burbuja justo sobre el checkpoint que la originó
+  bubble.style.left = `${originX}px`;
+  // Restamos scrollY porque fixed/absolute depende de document body pero queremos centrar relativo al viewport en ese instante
+  bubble.style.top = `${originY + window.scrollY}px`; 
+  
+  document.body.appendChild(bubble);
+
+  // Limpiar burbuja
+  setTimeout(() => {
+    if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
+  }, 1500);
+}
+
+window.addEventListener('scroll', () => {
+  const pct = scrollY / (document.body.scrollHeight - innerHeight) * 100;
+  pBar.style.width = pct + '%';
+}, { passive: true });
+
+/* ══════════════════════════════════════════
+   CHECKPOINTS INTERSECTION OBSERVER
+   Reemplaza la lógica anterior de las secciones para PV
+══════════════════════════════════════════ */
+const chkObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const chk = e.target;
+      const id = chk.id;
+      
+      if (!seenCheckpoints.has(id)) {
+        seenCheckpoints.add(id);
+        const pv = parseInt(chk.dataset.pv || '0');
+        
+        // Obtener centro del checkpoint para la burbuja
+        const rect = chk.getBoundingClientRect();
+        const originX = rect.left + rect.width / 2;
+        const originY = rect.top;
+
+        // Efecto visual en la línea
+        chk.style.opacity = '1';
+        chk.style.background = 'linear-gradient(90deg, transparent, var(--gold), transparent)';
+        
+        addPV(pv, originX, originY);
+      }
+    }
+  });
+}, { threshold: 1.0 }); // Solo se activa cuando la línea es completamente visible
+
+document.querySelectorAll('.checkpoint').forEach(chk => chkObs.observe(chk));
+
+/* ══════════════════════════════════════════
+   REVEAL — TEXTO NUNCA DESAPARECE
+══════════════════════════════════════════ */
+const revealEls = document.querySelectorAll('.reveal.not-yet');
+const revealObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting && e.target.classList.contains('not-yet')) {
+      e.target.classList.add('entered');
+      e.target.addEventListener('transitionend', () => {
+        e.target.classList.remove('not-yet', 'entered');
+      }, { once: true });
+      revealObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.08 });
+
+requestAnimationFrame(() => {
+  revealEls.forEach(el => {
+    const rect = el.getBoundingClientRect();
+    if (rect.top < innerHeight * 0.98) {
+      el.classList.remove('not-yet');
+    } else {
+      revealObs.observe(el);
+    }
+  });
+});
+
+/* ══════════════════════════════════════════
+   SECTIONS — NAV DOTS (Separado de los PV)
+══════════════════════════════════════════ */
+const secObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const id = e.target.id;
+    document.querySelectorAll('.nav-dot').forEach(d => d.classList.remove('active'));
+    const dot = document.querySelector(`.nav-dot[data-sec="${id}"]`);
+    if (dot) dot.classList.add('active');
+  });
+}, { threshold: 0.25 });
+document.querySelectorAll('section[id]').forEach(s => secObs.observe(s));
+
+/* ══════════════════════════════════════════
+   CINEMA QUOTES
+══════════════════════════════════════════ */
+const cqObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    e.target.querySelectorAll('.word').forEach((w, i) => {
+      setTimeout(() => w.classList.add('shown'), i * 70);
+    });
+    cqObs.unobserve(e.target);
+  });
+}, { threshold: 0.4 });
+document.querySelectorAll('.cinema-quote').forEach(q => cqObs.observe(q));
+
+/* ══════════════════════════════════════════
+   NAV DOTS CLICK
+══════════════════════════════════════════ */
+document.querySelectorAll('.nav-dot').forEach(d => {
+  d.addEventListener('click', () => {
+    const el = document.getElementById(d.dataset.sec);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+
+/* ══════════════════════════════════════════
+   COVER PARALLAX
+══════════════════════════════════════════ */
+window.addEventListener('scroll', () => {
+  if (scrollY < innerHeight * 1.2) {
+    document.getElementById('cover').style.transform = `translateY(${scrollY * 0.28}px)`;
+  }
+}, { passive: true });
+
+/* ══════════════════════════════════════════
+   WEB AUDIO — MÚSICA ADHD
+══════════════════════════════════════════ */
+let audioCtx = null;
+let masterGain = null;
+let noiseSource = null;
+let oscNodes = [];
+let lfoNodes = [];
+let soundOn = false;
+let evolveTimer = null;
+
+function createBrownNoise(ctx) {
+  const sr = ctx.sampleRate;
+  const sec = 10;
+  const buf = ctx.createBuffer(2, sr * sec, sr);
+  for (let ch = 0; ch < 2; ch++) {
+    const data = buf.getChannelData(ch);
+    let last = 0;
+    for (let i = 0; i < data.length; i++) {
+      const white = (Math.random() * 2 - 1);
+      last = (last + 0.02 * white) / 1.02;
+      data[i] = last * 3.5;
+    }
+  }
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.loop = true;
+  return src;
+}
+
+function createPad(ctx, freq, detune = 0) {
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+  osc.detune.value = detune;
+  const gain = ctx.createGain();
+  gain.gain.value = 0;
+  osc.connect(gain);
+  const lfo = ctx.createOscillator();
+  lfo.frequency.value = 0.07 + Math.random() * 0.04;
+  const lfoGain = ctx.createGain();
+  lfoGain.gain.value = 0.003;
+  lfo.connect(lfoGain);
+  lfoGain.connect(gain.gain);
+  osc.start(); lfo.start();
+  return { osc, gain, lfo, lfoGain };
+}
+
+function createBinaural(ctx, base, beatFreq) {
+  const merger = ctx.createChannelMerger(2);
+  const oscL = ctx.createOscillator();
+  const oscR = ctx.createOscillator();
+  oscL.frequency.value = base;
+  oscR.frequency.value = base + beatFreq;
+  oscL.type = oscR.type = 'sine';
+  const gL = ctx.createGain(); gL.gain.value = 0;
+  const gR = ctx.createGain(); gR.gain.value = 0;
+  oscL.connect(gL); oscL.connect(merger, 0, 0);
+  oscR.connect(gR); oscR.connect(merger, 0, 1);
+  oscL.start(); oscR.start();
+  return { merger, gL, gR, oscL, oscR };
+}
+
+const CHORD_FREQS = [
+  [110, 130.81, 164.81, 220],
+  [87.31, 110, 130.81, 174.61],
+  [130.81, 164.81, 196, 261.63],
+  [98, 123.47, 146.83, 196],
+];
+let chordIdx = 0;
+
+function startSound() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0;
+  masterGain.connect(audioCtx.destination);
+  const lpf = audioCtx.createBiquadFilter();
+  lpf.type = 'lowpass';
+  lpf.frequency.value = 800;
+  lpf.Q.value = 0.5;
+  lpf.connect(masterGain);
+  const delay = audioCtx.createDelay(2);
+  delay.delayTime.value = 0.45;
+  const feedback = audioCtx.createGain();
+  feedback.gain.value = 0.28;
+  const delayGain = audioCtx.createGain();
+  delayGain.gain.value = 0.18;
+  delay.connect(feedback); feedback.connect(delay);
+  delay.connect(delayGain); delayGain.connect(masterGain);
+  noiseSource = createBrownNoise(audioCtx);
+  const noiseGain = audioCtx.createGain();
+  noiseGain.gain.value = 0.028;
+  noiseSource.connect(noiseGain);
+  noiseGain.connect(masterGain);
+  noiseSource.start();
+  function buildChord(freqs) {
+    oscNodes.forEach(n => { try { n.osc.stop(); n.lfo.stop(); } catch(e){} });
+    oscNodes = [];
+    freqs.forEach((f, i) => {
+      const pad = createPad(audioCtx, f, (Math.random()-0.5)*4);
+      pad.gain.connect(lpf);
+      pad.gain.connect(delay);
+      const targetVol = 0.012 / (i + 1);
+      pad.gain.gain.setTargetAtTime(targetVol, audioCtx.currentTime, 2.5);
+      oscNodes.push(pad);
+    });
+  }
+  buildChord(CHORD_FREQS[chordIdx]);
+  const bin = createBinaural(audioCtx, 200, 10);
+  bin.merger.connect(masterGain);
+  bin.gL.gain.setTargetAtTime(0.006, audioCtx.currentTime, 3);
+  bin.gR.gain.setTargetAtTime(0.006, audioCtx.currentTime, 3);
+  masterGain.gain.setTargetAtTime(0.85, audioCtx.currentTime, 1.5);
+  evolveTimer = setInterval(() => {
+    chordIdx = (chordIdx + 1) % CHORD_FREQS.length;
+    buildChord(CHORD_FREQS[chordIdx]);
+  }, 24000);
+}
+
+function stopSound() {
+  if (!audioCtx || !masterGain) return;
+  masterGain.gain.setTargetAtTime(0, audioCtx.currentTime, 1.2);
+  clearInterval(evolveTimer);
+  setTimeout(() => {
+    oscNodes.forEach(n => { try { n.osc.stop(); n.lfo.stop(); } catch(e){} });
+    if (noiseSource) { try { noiseSource.stop(); } catch(e){} }
+    oscNodes = []; noiseSource = null;
+  }, 2500);
+}
+
+function toggleSound() {
+  const btn = document.getElementById('sound-btn');
+  const lbl = document.getElementById('sound-label');
+  soundOn = !soundOn;
+  if (soundOn) {
+    startSound();
+    btn.classList.add('on');
+    lbl.textContent = 'SONANDO';
+  } else {
+    stopSound();
+    btn.classList.remove('on');
+    lbl.textContent = 'SONIDO';
+  }
+}
+</script>
+</body>
+</html>
