@@ -3,19 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#131110">
-    <title>El Hermilaño v3 — Edición Web</title>
+    <title>El Hermilaño v3 — Edición Web Corregida</title>
     
-    <!-- Librerías Externas Client-Side -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <style>
         :root {
-            /* Tema Día por defecto */
             --bg: #EDE8DC;
             --paper: #FAF7F0;
             --text: #2C1A10;
@@ -64,15 +60,13 @@
             overflow: hidden;
         }
 
-        /* Layout Principal */
         #app-container {
             display: flex;
             flex: 1;
-            height: calc(100vh - 44px - 24px); /* Menos Toolbar y Statusbar */
+            height: calc(100vh - 44px - 24px);
             position: relative;
         }
 
-        /* Toolbar */
         #toolbar {
             height: 44px;
             background-color: var(--toolbar-bg);
@@ -85,7 +79,6 @@
             white-space: nowrap;
             z-index: 10;
         }
-
         #toolbar::-webkit-scrollbar { display: none; }
 
         .btn {
@@ -100,7 +93,6 @@
         }
         .btn:hover { background-color: var(--selection); }
         .btn.active { background-color: var(--accent); color: #FFF; }
-        .btn-voice { font-size: 16px; }
         .btn-voice.recording { background-color: #AA2222; color: #FFF; animation: pulse 1.5s infinite; }
 
         @keyframes pulse {
@@ -109,22 +101,17 @@
             100% { opacity: 1; }
         }
 
-        .sep {
-            width: 1px;
-            height: 20px;
-            background-color: var(--border);
-            margin: 0 4px;
-            display: inline-block;
-        }
+        .sep { width: 1px; height: 20px; background-color: var(--border); margin: 0 4px; }
 
-        /* Sidebar / Estructura */
+        /* Estructura Sidebar adaptable */
         #sidebar {
-            width: 260px;
+            width: 280px;
             background-color: var(--sidebar-bg);
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            transition: transform 0.3s ease;
+            z-index: 20;
+            height: 100%;
         }
 
         .sidebar-header {
@@ -144,38 +131,59 @@
             padding: 8px;
         }
 
+        /* Draggable items con soporte touch */
         .tree-item {
             display: flex;
             align-items: center;
-            padding: 8px 10px;
+            padding: 10px;
             border-radius: 6px;
-            cursor: pointer;
+            cursor: grab;
             font-size: 14px;
-            margin-bottom: 2px;
+            margin-bottom: 4px;
             user-select: none;
+            background-color: transparent;
+            border: 1px solid transparent;
+            position: relative;
         }
+        .tree-item:active { cursor: grabbing; }
         .tree-item:hover { background-color: var(--selection); }
         .tree-item.active { background-color: var(--accent); color: #FFF; }
         .tree-item.volume { font-weight: bold; }
-        .tree-item.chapter { padding-left: 24px; }
-        .item-status { margin-left: auto; font-size: 10px; opacity: 0.7; }
+        .tree-item.chapter { margin-left: 16px; }
+        .tree-item.drag-over { border: 2px dashed var(--accent); background-color: var(--selection); }
+        
+        .item-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 4px;
+        }
+        .btn-del {
+            font-size: 10px;
+            color: var(--text-dim);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 2px 6px;
+        }
+        .tree-item.active .btn-del { color: #FFF; }
 
         .sidebar-actions {
-            padding: 8px;
+            padding: 12px;
             display: flex;
-            gap: 6px;
+            gap: 8px;
             border-top: 1px solid var(--border);
+            background-color: var(--sidebar-bg);
         }
         .sidebar-actions .btn {
             flex: 1;
             background-color: var(--accent);
             color: #FFF;
             font-weight: bold;
-            font-size: 12px;
+            font-size: 13px;
             text-align: center;
+            padding: 8px;
         }
 
-        /* Contenedor del Editor */
         #editor-container {
             flex: 1;
             display: flex;
@@ -190,7 +198,6 @@
             font-style: italic;
             color: var(--text-dim);
             margin-bottom: 8px;
-            padding: 0 8px;
         }
 
         #paper-wrapper {
@@ -199,28 +206,19 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
             border-radius: 8px;
             overflow-y: auto;
-            position: relative;
         }
 
-        /* Campo de Escritura */
         #editor {
             min-height: 100%;
             outline: none;
             font-size: var(--font-size);
             line-height: 1.7;
-            padding-left: var(--margin-left);
-            padding-right: var(--margin-left);
-            padding-top: var(--margin-top);
-            padding-bottom: calc(var(--margin-top) + 120px); /* Evitar solape con teclado virtual */
+            padding: var(--margin-top) var(--margin-left);
+            padding-bottom: calc(var(--margin-top) + 140px);
             word-wrap: break-word;
         }
+        #editor p { margin-bottom: 12px; text-indent: var(--indent); }
 
-        #editor p {
-            margin-bottom: 12px;
-            text-indent: var(--indent);
-        }
-
-        /* Barra de Estado */
         #statusbar {
             height: 24px;
             background-color: var(--status-bg);
@@ -234,64 +232,47 @@
             z-index: 10;
         }
 
-        /* Modo Flujo / Zen */
-        body.flow-mode #toolbar,
-        body.flow-mode #sidebar,
-        body.flow-mode #statusbar,
-        body.flow-mode #chapter-header-title {
-            display: none !important;
-        }
-        body.flow-mode #app-container { height: 100vh; }
-        body.flow-mode #editor-container { padding: 0; }
-        body.flow-mode #paper-wrapper { box-shadow: none; border-radius: 0; }
-        body.flow-mode #editor {
-            max-width: 700px;
-            margin: 0 auto;
-            padding-top: 60px;
-        }
-
-        /* Hint flotante de salida modo flujo */
-        #flow-hint {
-            display: none;
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.7);
-            color: #fff;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            pointer-events: none;
-            z-index: 10000;
-        }
-        body.flow-mode #flow-hint { display: block; }
-
-        /* Adaptación Responsiva Celulares */
-        @media (max-width: 768px) {
+        /* Responsive Móvil: Orientación Vertical */
+        @media (max-width: 768px) and (orientation: portrait) {
             #sidebar {
                 position: absolute;
                 left: 0;
                 bottom: 0;
                 width: 100%;
-                height: 70vh;
+                height: 50vh;
                 transform: translateY(100%);
-                z-index: 2000;
-                box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+                transition: transform 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+                box-shadow: 0 -4px 24px rgba(0,0,0,0.2);
                 border-radius: 16px 16px 0 0;
                 border-right: none;
                 border-top: 2px solid var(--accent);
             }
             #sidebar.open { transform: translateY(0); }
-            var {
-                --margin-left: 20px;
-            }
+            :root { --margin-left: 24px; }
         }
+
+        /* Responsive Móvil: Orientación Horizontal (Mantiene panel izquierdo como PC) */
+        @media (max-width: 900px) and (orientation: landscape) {
+            #sidebar {
+                width: 240px;
+                position: relative;
+                transform: none !important;
+                box-shadow: none;
+                border-radius: 0;
+                border-right: 1px solid var(--border);
+            }
+            #btn-sidebar-toggle { display: none; }
+        }
+
+        body.flow-mode #toolbar, body.flow-mode #sidebar, body.flow-mode #statusbar { display: none !important; }
+        body.flow-mode #app-container { height: 100vh; }
+        body.flow-mode #editor-container { padding: 0; }
+        body.flow-mode #paper-wrapper { box-shadow: none; border-radius: 0; }
+        body.flow-mode #editor { max-width: 650px; margin: 0 auto; padding-top: 40px; }
     </style>
 </head>
 <body>
 
-    <!-- Toolbar Superior -->
     <div id="toolbar">
         <button class="btn" id="btn-sidebar-toggle" onclick="toggleSidebar()">📂 Estructura</button>
         <div class="sep"></div>
@@ -299,27 +280,21 @@
         <button class="btn" onclick="execCmd('italic')"><i>I</i></button>
         <button class="btn" onclick="execCmd('underline')"><u>U</u></button>
         <div class="sep"></div>
-        <button class="btn" onclick="execCmd('justifyLeft')">⟵</button>
-        <button class="btn" onclick="execCmd('justifyCenter')">≡</button>
-        <button class="btn" onclick="execCmd('justifyRight')">⟶</button>
+        <button class="btn" id="btn-voice" onclick="toggleVoice()">🎤 Dictar</button>
         <div class="sep"></div>
-        <button class="btn btn-voice" id="btn-voice" onclick="toggleVoice()">🎤</button>
-        <div class="sep"></div>
-        <button class="btn" onclick="exportarJSON()">💾 JSON</button>
+        <button class="btn" onclick="guardarArchivoJSON(true)">💾 Guardar Como...</button>
+        <button class="btn" onclick="guardarArchivoJSON(false)">💾 Actualizar Cambios</button>
         <button class="btn" onclick="exportarPDF()">📄 PDF</button>
         <button class="btn" onclick="exportarEPUB()">📖 EPUB</button>
         <div class="sep"></div>
         <button class="btn" onclick="toggleTheme()">☀/☾</button>
-        <button class="btn" onclick="toggleFlowMode()">Flujo (F11)</button>
+        <button class="btn" onclick="document.body.classList.toggle('flow-mode')">Modo Zen</button>
     </div>
 
-    <!-- Área de Trabajo Principal -->
     <div id="app-container">
-        <!-- Barra Lateral Estructura -->
         <div id="sidebar" class="open">
             <div class="sidebar-header">
-                <span>ESTRUCTURA</span>
-                <button class="btn" onclick="toggleSidebar()" style="padding:0; font-size:11px;">✕</button>
+                <span>ESTRUCTURA LIBRO</span>
             </div>
             <div id="tree-view"></div>
             <div class="sidebar-actions">
@@ -328,34 +303,24 @@
             </div>
         </div>
 
-        <!-- Panel del Editor -->
         <div id="editor-container">
-            <div id="chapter-header-title">Selecciona un capítulo para comenzar...</div>
+            <div id="chapter-header-title">Elige o crea un tomo o capítulo a la izquierda...</div>
             <div id="paper-wrapper">
                 <div id="editor" contenteditable="true" oninput="onEditorInput()"></div>
             </div>
         </div>
     </div>
 
-    <!-- Barra de Estado Inferior -->
     <div id="statusbar">
         <span id="lbl-status">Listo.</span>
         <span id="lbl-words">0 palabras</span>
     </div>
 
-    <!-- Hint modo flujo -->
-    <div id="flow-hint">Presiona pantalla o inclina para salir del Modo Flujo</div>
-
     <script>
-        // Modelo de datos global
         let project = {
             id: crypto.randomUUID(),
-            title: "Nuevo Libro Web",
-            author: "Autor",
-            genre: "",
-            synopsis: "",
-            creation_date: new Date().toLocaleString(),
-            last_modified: new Date().toLocaleString(),
+            title: "Nuevo Libro",
+            author: "Andrés Prado",
             items: []
         };
 
@@ -363,46 +328,23 @@
         let isDirty = false;
         let recognition = null;
         let isRecording = false;
+        let fileHandle = null; // Guardará el puntero físico del archivo nativo de PC/Celular
+        let draggedId = null;  // Id del nodo que se está arrastrando
 
-        // Inicialización
         window.addEventListener('DOMContentLoaded', () => {
             cargarLocal();
             initSpeechRecognition();
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'F11') { e.preventDefault(); toggleFlowMode(); }
-            });
-            // Cerrar sidebar táctil al pulsar el editor en móviles
-            document.getElementById('editor').addEventListener('click', () => {
-                if(window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
-            });
+            setupGlobalDragEvents();
         });
 
-        function updateStatus(msg) {
-            document.getElementById('lbl-status').innerText = msg;
-        }
-
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
-        }
+        function updateStatus(msg) { document.getElementById('lbl-status').innerText = msg; }
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
         function toggleTheme() {
-            const currentTheme = document.body.getAttribute('data-theme');
-            const nextTheme = currentTheme === 'noche' ? 'dia' : 'noche';
+            const nextTheme = document.body.getAttribute('data-theme') === 'noche' ? 'dia' : 'noche';
             document.body.setAttribute('data-theme', nextTheme);
             localStorage.setItem('hermilano_theme', nextTheme);
         }
-
-        function toggleFlowMode() {
-            document.body.classList.toggle('flow-mode');
-            if(document.body.classList.contains('flow-mode')) {
-                updateStatus("Modo Flujo Activo.");
-            } else {
-                updateStatus("Listo.");
-            }
-        }
-
-        // Salida táctil del modo flujo
-        document.getElementById('flow-hint').addEventListener('click', toggleFlowMode);
 
         function execCmd(command) {
             document.execCommand(command, false, null);
@@ -410,86 +352,161 @@
             onEditorInput();
         }
 
-        // Estructura del Libro
         function renderTree() {
             const container = document.getElementById('tree-view');
             container.innerHTML = '';
 
-            project.items.forEach(item => {
-                if (item.type === 'volume') {
-                    const volDiv = document.createElement('div');
-                    volDiv.className = `tree-item volume ${currentActiveId === item.id ? 'active' : ''}`;
-                    volDiv.innerHTML = `📖 ${item.name}`;
-                    volDiv.onclick = () => selectItem(item.id);
-                    container.appendChild(volDiv);
+            project.items.forEach((item, index) => {
+                const itemDiv = createTreeElement(item, false);
+                container.appendChild(itemDiv);
 
-                    (item.chapters || []).forEach(ch => {
-                        const chDiv = document.createElement('div');
-                        chDiv.className = `tree-item chapter ${currentActiveId === ch.id ? 'active' : ''}`;
-                        chDiv.innerHTML = `○ ${ch.name}`;
-                        chDiv.onclick = () => selectItem(ch.id);
+                if (item.type === 'volume' && item.chapters) {
+                    item.chapters.forEach(ch => {
+                        const chDiv = createTreeElement(ch, true, item.id);
                         container.appendChild(chDiv);
                     });
-                } else {
-                    const chDiv = document.createElement('div');
-                    chDiv.className = `tree-item ${currentActiveId === item.id ? 'active' : ''}`;
-                    chDiv.innerHTML = `📄 ○ ${item.name}`;
-                    chDiv.onclick = () => selectItem(item.id);
-                    container.appendChild(chDiv);
                 }
             });
-            actualizarContadorPalabrasLibro();
+            actualizarPalabrasTotales();
         }
 
-        function addVolume() {
-            const name = prompt("Nombre del Tomo / Volumen:");
-            if (!name) return;
-            project.items.push({
-                id: crypto.randomUUID(),
-                type: 'volume',
-                name: name,
-                chapters: []
+        // Generador de Elementos Draggables Híbridos (Mouse y Touch)
+        function createTreeElement(item, isChild, parentId = null) {
+            const div = document.createElement('div');
+            div.className = `tree-item ${item.type === 'volume' ? 'volume' : 'chapter'} ${currentActiveId === item.id ? 'active' : ''}`;
+            div.innerHTML = `${item.type === 'volume' ? '📖' : '📄'} ${item.name} <div class="item-actions"><button class="btn-del" onclick="deleteItem(event, '${item.id}', '${parentId}')">✕</button></div>`;
+            div.setAttribute('draggable', 'true');
+            div.setAttribute('data-id', item.id);
+            if(parentId) div.setAttribute('data-parent-id', parentId);
+
+            // Clic normal para editar
+            div.addEventListener('click', (e) => {
+                if(e.target.classList.contains('btn-del')) return;
+                selectItem(item.id);
             });
-            guardarLocal();
-            renderTree();
+
+            // Implementación Drag and Drop API estándar (PC)
+            div.addEventListener('dragstart', (e) => { draggedId = item.id; e.dataTransfer.setData('text/plain', item.id); });
+            div.addEventListener('dragover', (e) => { e.preventDefault(); div.classList.add('drag-over'); });
+            div.addEventListener('dragleave', () => div.classList.remove('drag-over'));
+            div.addEventListener('drop', (e) => { e.preventDefault(); div.classList.remove('drag-over'); handleDrop(draggedId, item.id); });
+
+            // Implementación Touch Drag (Celulares/Tablets)
+            div.addEventListener('touchstart', (e) => { draggedId = item.id; }, {passive: true});
+            div.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+                const closestItem = targetEl ? targetEl.closest('.tree-item') : null;
+                
+                document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('drag-over'));
+                if(closestItem) closestItem.classList.add('drag-over');
+            }, {passive: false});
+
+            div.addEventListener('touchend', (e) => {
+                const touch = e.changedTouches[0];
+                const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+                const closestItem = targetEl ? targetEl.closest('.tree-item') : null;
+                
+                document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('drag-over'));
+                if(closestItem) {
+                    const targetId = closestItem.getAttribute('data-id');
+                    handleDrop(draggedId, targetId);
+                }
+                draggedId = null;
+            });
+
+            return div;
         }
 
-        function addChapter() {
-            const name = prompt("Nombre del Capítulo:");
-            if (!name) return;
-            
-            const activeItem = findItem(currentActiveId);
-            if (activeItem && activeItem.type === 'volume') {
-                activeItem.chapters.push({
-                    id: crypto.randomUUID(),
-                    type: 'chapter',
-                    name: name,
-                    content: '',
-                    word_count: 0
-                });
+        // Lógica de Reordenamiento interna del JSON
+        function handleDrop(srcId, tgtId) {
+            if (!srcId || !tgtId || srcId === tgtId) return;
+
+            let srcItem = findAndRemoveItem(srcId, project.items);
+            if (!srcItem) return;
+
+            let tgtIndex = project.items.findIndex(i => i.id === tgtId);
+            if (tgtIndex !== -1) {
+                // Mover a nivel de raíz
+                project.items.splice(tgtIndex, 0, srcItem);
             } else {
-                project.items.push({
-                    id: crypto.randomUUID(),
-                    type: 'chapter',
-                    name: name,
-                    content: '',
-                    word_count: 0
-                });
+                // Buscar si el destino está dentro de un Tomo
+                for (let item of project.items) {
+                    if (item.type === 'volume' && item.chapters) {
+                        let cIndex = item.chapters.findIndex(c => c.id === tgtId);
+                        if (cIndex !== -1) {
+                            srcItem.type = 'chapter'; // Forzar conversión si entra a tomo
+                            item.chapters.splice(cIndex, 0, srcItem);
+                            break;
+                        }
+                    }
+                }
             }
             guardarLocal();
             renderTree();
+        }
+
+        function findAndRemoveItem(id, list) {
+            for (let i = 0; i < list.length; i++) {
+                if (list[i].id === id) return list.splice(i, 1)[0];
+                if (list[i].type === 'volume' && list[i].chapters) {
+                    let found = findAndRemoveItem(id, list[i].chapters);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        function setupGlobalDragEvents() {
+            document.getElementById('tree-view').addEventListener('dragover', (e) => e.preventDefault());
+        }
+
+        function addVolume() {
+            const name = prompt("Nombre del nuevo Tomo:");
+            if (!name) return;
+            project.items.push({ id: crypto.randomUUID(), type: 'volume', name: name, chapters: [] });
+            guardarLocal(); renderTree();
+        }
+
+        function addChapter() {
+            const name = prompt("Nombre del nuevo Capítulo:");
+            if (!name) return;
+            const activeItem = findItem(currentActiveId);
+            if (activeItem && activeItem.type === 'volume') {
+                activeItem.chapters.push({ id: crypto.randomUUID(), type: 'chapter', name: name, content: '<p><br></p>', word_count: 0 });
+            } else {
+                project.items.push({ id: crypto.randomUUID(), type: 'chapter', name: name, content: '<p><br></p>', word_count: 0 });
+            }
+            guardarLocal(); renderTree();
+        }
+
+        function deleteItem(e, id, parentId) {
+            e.stopPropagation();
+            if(!confirm("¿Seguro que deseas eliminar este elemento?")) return;
+            if(parentId && parentId !== 'null') {
+                let p = findItem(parentId);
+                if(p && p.chapters) p.chapters = p.chapters.filter(c => c.id !== id);
+            } else {
+                project.items = project.items.filter(i => i.id !== id);
+            }
+            if(currentActiveId === id) {
+                currentActiveId = null;
+                document.getElementById('editor').innerHTML = '';
+                document.getElementById('chapter-header-title').innerText = '';
+            }
+            guardarLocal(); renderTree();
         }
 
         function selectItem(id) {
             salvarCapituloActual();
             currentActiveId = id;
             const item = findItem(id);
-            if (item && item.type === 'chapter') {
+            if (item) {
                 document.getElementById('chapter-header-title').innerText = item.name;
                 document.getElementById('editor').innerHTML = item.content || '<p><br></p>';
-            } else if (item && item.type === 'volume') {
-                document.getElementById('chapter-header-title').innerText = `Volumen: ${item.name}`;
-                document.getElementById('editor').innerHTML = `<p style="text-align:center;"><i>${item.name}</i></p>`;
+                const count = contarPalabras(document.getElementById('editor').innerText);
+                document.getElementById('lbl-words').innerText = `${count} palabras`;
             }
             renderTree();
         }
@@ -516,34 +533,26 @@
 
         function onEditorInput() {
             isDirty = true;
+            salvarCapituloActual();
             const text = document.getElementById('editor').innerText;
             const count = contarPalabras(text);
             document.getElementById('lbl-words').innerText = `${count} palabras`;
         }
 
-        function contarPalabras(str) {
-            return str.trim() === '' ? 0 : str.trim().split(/\s+/).length;
-        }
+        function contarPalabras(str) { return str.trim() === '' ? 0 : str.trim().split(/\s+/).length; }
 
-        function actualizarContadorPalabrasLibro() {
+        function actualizarPalabrasTotales() {
             let total = 0;
-            const recorrer = (list) => {
-                list.forEach(i => {
-                    if(i.word_count) total += i.word_count;
-                    if(i.chapters) recorrer(i.chapters);
-                });
-            };
+            const recorrer = (list) => { list.forEach(i => { if(i.word_count) total += i.word_count; if(i.chapters) recorrer(i.chapters); }); };
             recorrer(project.items);
-            if(!document.body.classList.contains('flow-mode')) {
-                document.getElementById('lbl-words').innerText = `Libro: ${total} p.`;
-            }
+            if(!document.body.classList.contains('flow-mode')) document.getElementById('lbl-words').innerText = `Libro: ${total} p.`;
         }
 
-        // Reconocimiento de Voz (Web Speech API)
+        // Web Speech API con logs y manejo de fallos en PC local
         function initSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
-                document.getElementById('btn-voice').style.display = 'none';
+                document.getElementById('btn-voice').innerText = "🎤 No Soportado";
                 return;
             }
             recognition = new SpeechRecognition();
@@ -552,235 +561,148 @@
             recognition.lang = 'es-ES';
 
             recognition.onresult = (event) => {
-                const resultIndex = event.resultIndex;
-                const transcript = event.results[resultIndex][0].transcript;
-                inyectarTextoVoz(transcript);
+                const transcript = event.results[event.resultIndex][0].transcript;
+                inyectarTexto(transcript);
             };
 
             recognition.onerror = (e) => {
-                console.error("Speech Error: ", e);
+                console.error("Fallo Reconocimiento: ", e.error);
+                if(e.error === 'not-allowed') {
+                    alert("Permiso de micrófono denegado. Si estás en PC, recuerda que debes servir este archivo vía HTTPS o servidor local (localhost) para que funcione.");
+                }
                 stopVoice();
             };
-
-            recognition.onend = () => {
-                if (isRecording) recognition.start(); // Auto-restart seguro
-            };
+            recognition.onend = () => { if (isRecording) recognition.start(); };
         }
 
-        function toggleVoice() {
-            if (!recognition) return;
-            if (isRecording) {
-                stopVoice();
-            } else {
-                startVoice();
-            }
-        }
-
+        function toggleVoice() { if (isRecording) stopVoice(); else startVoice(); }
         function startVoice() {
-            isRecording = true;
-            recognition.start();
+            if(!recognition) return; isRecording = true; recognition.start();
             document.getElementById('btn-voice').classList.add('recording');
-            updateStatus("🎤 Dictado por voz activo...");
+            updateStatus("🎤 Grabando voz a texto...");
         }
-
         function stopVoice() {
-            isRecording = false;
-            recognition.stop();
+            isRecording = false; if(recognition) recognition.stop();
             document.getElementById('btn-voice').classList.remove('recording');
             updateStatus("Listo.");
         }
 
-        function inyectarTextoVoz(text) {
-            const editor = document.getElementById('editor');
-            editor.focus();
-            
-            // Inserción limpia usando la selección nativa del DOM
+        function inyectarTexto(text) {
+            const editor = document.getElementById('editor'); editor.focus();
             const sel = window.getSelection();
             if (sel.getRangeAt && sel.rangeCount) {
                 let range = sel.getRangeAt(0);
                 range.deleteContents();
-                let textNode = document.createTextNode(text + " ");
-                range.insertNode(textNode);
-                range.setStartAfter(textNode);
-                range.setEndAfter(textNode);
-                sel.removeAllRanges();
-                sel.addRange(range);
+                let node = document.createTextNode(text + " ");
+                range.insertNode(node);
+                range.setStartAfter(node);
+                range.setEndAfter(node);
+                sel.removeAllRanges(); sel.addRange(range);
             } else {
                 editor.innerHTML += ` ${text} `;
             }
             onEditorInput();
         }
 
-        // Persistencia Local
-        function guardarLocal() {
+        // File System Access API para Sobrescribir el Archivo Real Sin Descargar Copias
+        async function guardarArchivoJSON(forcePick = false) {
             salvarCapituloActual();
             project.last_modified = new Date().toLocaleString();
+            const dataString = JSON.stringify(project, null, 2);
+
+            // Si el navegador soporta la API nativa de guardado persistente
+            if (window.showSaveFilePicker) {
+                try {
+                    if (!fileHandle || forcePick) {
+                        fileHandle = await window.showSaveFilePicker({
+                            suggestedName: `${project.title.replace(/\s+/g, '_')}.json`,
+                            types: [{ description: 'Archivo Hermilaño JSON', accept: { 'application/json': ['.json'] } }]
+                        });
+                    }
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(dataString);
+                    await writable.close();
+                    updateStatus("✓ Archivo físico actualizado correctamente.");
+                    isDirty = false;
+                    return;
+                } catch (err) {
+                    console.warn("Guardado nativo cancelado o fallido, usando fallback clásico.", err);
+                }
+            }
+
+            // Fallback clásico si falla o está en navegador obsoleto
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(dataString);
+            const a = document.createElement('a'); a.href = dataStr;
+            a.download = `${project.title.replace(/\s+/g, '_')}.json`;
+            a.click();
+            updateStatus("Archivo descargado (Nueva Copia).");
+            isDirty = false;
+        }
+
+        function guardarLocal() {
+            salvarCapituloActual();
             localStorage.setItem('hermilano_project', JSON.stringify(project));
         }
 
         function cargarLocal() {
             const saved = localStorage.getItem('hermilano_project');
-            if (saved) {
-                try { project = JSON.parse(saved); } catch(e) { console.error(e); }
-            }
-            const theme = localStorage.getItem('hermilano_theme') || 'dia';
-            document.body.setAttribute('data-theme', theme);
+            if (saved) { try { project = JSON.parse(saved); } catch(e){} }
+            document.body.setAttribute('data-theme', localStorage.getItem('hermilano_theme') || 'dia');
             renderTree();
         }
 
-        // Auto-guardado en background intermitente
-        setInterval(() => {
-            if (isDirty) {
-                guardarLocal();
-                isDirty = false;
-                updateStatus("Autoguardado local completo.");
-            }
-        }, 10000);
-
-        // Exportadores Client-Side
-        function exportarJSON() {
-            guardarLocal();
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(project, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `${project.title.replace(/\s+/g, '_')}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-        }
-
-        function cleanText(text) {
-            return text.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/—/g, '-');
-        }
+        // Ciclo automático en segundo plano que guarda directamente al archivo físico asignado si está modificado
+        setInterval(() => { if (isDirty) { guardarLocal(); if(fileHandle) guardarArchivoJSON(false); isDirty = false; } }, 5000);
 
         function exportarPDF() {
             salvarCapituloActual();
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF();
-            let y = 20;
-
-            pdf.setFont("Helvetica", "bold");
-            pdf.setFontSize(22);
-            pdf.text(cleanText(project.title), 20, y);
-            y += 15;
-
-            const recorrerYImprimir = (items) => {
-                items.forEach(item => {
-                    if (y > 270) { pdf.addPage(); y = 20; }
-                    if (item.type === 'volume') {
-                        pdf.setFont("Helvetica", "bold");
-                        pdf.setFontSize(16);
-                        pdf.text(cleanText(item.name), 20, y);
-                        y += 12;
-                        if(item.chapters) recorrerYImprimir(item.chapters);
-                    } else {
-                        pdf.setFont("Helvetica", "bold");
-                        pdf.setFontSize(14);
-                        pdf.text(cleanText(item.name), 20, y);
-                        y += 10;
-                        
+            const { jsPDF } = window.jspdf; const pdf = new jsPDF(); let y = 20;
+            pdf.setFont("Helvetica", "bold"); pdf.text(project.title, 20, y); y += 20;
+            pdf.setFont("Helvetica", "normal"); pdf.setFontSize(11);
+            
+            const printList = (list) => {
+                list.forEach(i => {
+                    if (y > 260) { pdf.addPage(); y = 20; }
+                    pdf.setFont("Helvetica", "bold"); pdf.text(i.name, 20, y); y += 10;
+                    if(i.content) {
                         pdf.setFont("Helvetica", "normal");
-                        pdf.setFontSize(11);
-                        const tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = item.content || '';
-                        const lines = pdf.splitTextToSize(cleanText(tempDiv.innerText), 170);
-                        lines.forEach(line => {
-                            if (y > 270) { pdf.addPage(); y = 20; }
-                            pdf.text(line, 25, y);
-                            y += 6;
-                        });
-                        y += 10;
+                        let div = document.createElement('div'); div.innerHTML = i.content;
+                        let lines = pdf.splitTextToSize(div.innerText.replace(/[‘’]/g, "'").replace(/[“”]/g, '"'), 170);
+                        lines.forEach(l => { if(y > 260) { pdf.addPage(); y = 20; } pdf.text(l, 20, y); y += 6; });
                     }
+                    if(i.chapters) printList(i.chapters);
                 });
             };
-
-            recorrerYImprimir(project.items);
+            printList(project.items);
             pdf.save(`${project.title.replace(/\s+/g, '_')}.pdf`);
         }
 
         function exportarEPUB() {
             salvarCapituloActual();
             const zip = new JSZip();
-            
-            // Estructura mínima OCF contenedor estándar
             zip.file("mimetype", "application/epub+zip", { compression: "STORE" });
-            
-            const metaInf = zip.folder("META-INF");
-            metaInf.file("container.xml", `<?xml version="1.0"?>
-<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
-  <rootfiles>
-    <rootfile full-path="OEBPS/content.opf" media-type="application/oebspackage+xml"/>
-  </rootfiles>
-</container>`);
-
+            const metainf = zip.folder("META-INF");
+            metainf.file("container.xml", `<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebspackage+xml"/></rootfiles></container>`);
             const oebps = zip.folder("OEBPS");
-            oebps.file("stylesheet.css", `body { font-family: serif; padding: 1em; line-height: 1.5; } h1, h2 { text-align: center; } p { text-indent: 1.5em; margin: 0 0 0.5em 0; }`);
-
-            let manifestItems = '';
-            let spineItems = '';
-            let htmlFiles = [];
-
-            const procesarItems = (list) => {
-                list.forEach((item, index) => {
-                    if(item.type === 'chapter') {
-                        const filename = `chapter_${item.id}.html`;
-                        const fileContent = `<?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head><title>${item.name}</title><link rel="stylesheet" href="stylesheet.css" type="text/css"/></head>
-<body><h2>${item.name}</h2>${item.content}</body>
-</html>`;
-                        oebps.file(filename, fileContent);
-                        manifestItems += `<item id="ch_${item.id}" href="${filename}" media-type="application/xhtml+xml"/>\n`;
-                        spineItems += `<itemref idref="ch_${item.id}"/>\n`;
-                    } else if (item.chapters) {
-                        procesarItems(item.chapters);
+            oebps.file("stylesheet.css", `body{font-family:serif;padding:1em;} h2{text-align:center;}`);
+            
+            let manifest = '', spine = '';
+            const build = (list) => {
+                list.forEach(i => {
+                    if(i.type === 'chapter') {
+                        oebps.file(`ch_${i.id}.html`, `<html><head><link rel="stylesheet" href="stylesheet.css"/></head><body><h2>${i.name}</h2>${i.content}</body></html>`);
+                        manifest += `<item id="ch_${i.id}" href="ch_${i.id}.html" media-type="application/xhtml+xml"/>\n`;
+                        spine += `<itemref idref="ch_${i.id}"/>\n`;
                     }
+                    if(i.chapters) build(i.chapters);
                 });
             };
-            procesarItems(project.items);
+            build(project.items);
 
-            const contentOpf = `<?xml version="1.0" encoding="utf-8"?>
-<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="bookid" version="2.0">
-  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
-    <dc:title>${project.title}</dc:title>
-    <dc:creator>${project.author}</dc:creator>
-    <dc:identifier id="bookid">urn:uuid:${project.id}</dc:identifier>
-    <dc:language>es</dc:language>
-  </metadata>
-  <manifest>
-    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
-    <item id="css" href="stylesheet.css" media-type="text/css"/>
-    ${manifestItems}
-  </manifest>
-  <spine toc="ncx">
-    ${spineItems}
-  </spine>
-</package>`;
-
-            const tocNcx = `<?xml version="1.0" encoding="utf-8"?>
-<ncx xmlns="http://www.idpf.org/2007/ncx" version="2005-1">
-  <head>
-    <meta name="dtb:uid" content="urn:uuid:${project.id}"/>
-    <meta name="dtb:depth" content="1"/>
-  </head>
-  <docTitle><text>${project.title}</text></docTitle>
-  <navMap>
-     <!-- Tabla de contenidos simplificada -->
-  </navMap>
-</ncx>`;
-
-            oebps.file("content.opf", contentOpf);
-            oebps.file("toc.ncx", tocNcx);
-
-            zip.generateAsync({ type: "blob" }).then(function (blob) {
-                const blobUrl = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = blobUrl;
-                a.download = `${project.title.replace(/\s+/g, '_')}.epub`;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
+            oebps.file("content.opf", `<?xml version="1.0"?><package xmlns="http://www.idpf.org/2007/opf" version="2.0" unique-identifier="id"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>${project.title}</dc:title><dc:language>es</dc:language></metadata><manifest><item id="css" href="stylesheet.css" media-type="text/css"/>${manifest}</manifest><spine>${spine}</spine></package>`);
+            zip.generateAsync({type:"blob"}).then(b => {
+                const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u;
+                a.download = `${project.title.replace(/\s+/g, '_')}.epub`; a.click();
             });
         }
     </script>
