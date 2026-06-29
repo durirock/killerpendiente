@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#131110">
+    <title>El Hermilaño v3 — Edición Web</title>
+    
+    <!-- Librerías Externas Client-Side -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        :root {
+            /* Tema Día por defecto */
+            --bg: #EDE8DC;
+            --paper: #FAF7F0;
+            --text: #2C1A10;
+            --text-dim: #9A8870;
+            --sidebar-bg: #E4DECE;
+            --sidebar-fg: #2C1A10;
+            --accent: #8B3A2A;
+            --border: #C8B89A;
+            --selection: #D9C9A8;
+            --status-bg: #DDD5C2;
+            --toolbar-bg: #E8E0CC;
+            --font-size: 16px;
+            --margin-left: 40px;
+            --margin-top: 20px;
+            --indent: 24px;
+        }
+
+        [data-theme="noche"] {
+            --bg: #131110;
+            --paper: #1C1916;
+            --text: #E8D5A0;
+            --text-dim: #8A7A5A;
+            --sidebar-bg: #171412;
+            --sidebar-fg: #E8D5A0;
+            --accent: #C9854C;
+            --border: #3A3028;
+            --selection: #3A3020;
+            --status-bg: #0F0D0C;
+            --toolbar-bg: #1A1614;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Layout Principal */
+        #app-container {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 44px - 24px); /* Menos Toolbar y Statusbar */
+            position: relative;
+        }
+
+        /* Toolbar */
+        #toolbar {
+            height: 44px;
+            background-color: var(--toolbar-bg);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            gap: 4px;
+            overflow-x: auto;
+            white-space: nowrap;
+            z-index: 10;
+        }
+
+        #toolbar::-webkit-scrollbar { display: none; }
+
+        .btn {
+            background: transparent;
+            border: none;
+            color: var(--text);
+            padding: 6px 10px;
+            font-family: 'Georgia', serif;
+            font-size: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn:hover { background-color: var(--selection); }
+        .btn.active { background-color: var(--accent); color: #FFF; }
+        .btn-voice { font-size: 16px; }
+        .btn-voice.recording { background-color: #AA2222; color: #FFF; animation: pulse 1.5s infinite; }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .sep {
+            width: 1px;
+            height: 20px;
+            background-color: var(--border);
+            margin: 0 4px;
+            display: inline-block;
+        }
+
+        /* Sidebar / Estructura */
+        #sidebar {
+            width: 260px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 12px 16px;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            color: var(--text-dim);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #tree-view {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .tree-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 2px;
+            user-select: none;
+        }
+        .tree-item:hover { background-color: var(--selection); }
+        .tree-item.active { background-color: var(--accent); color: #FFF; }
+        .tree-item.volume { font-weight: bold; }
+        .tree-item.chapter { padding-left: 24px; }
+        .item-status { margin-left: auto; font-size: 10px; opacity: 0.7; }
+
+        .sidebar-actions {
+            padding: 8px;
+            display: flex;
+            gap: 6px;
+            border-top: 1px solid var(--border);
+        }
+        .sidebar-actions .btn {
+            flex: 1;
+            background-color: var(--accent);
+            color: #FFF;
+            font-weight: bold;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        /* Contenedor del Editor */
+        #editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg);
+            padding: 16px;
+            overflow: hidden;
+        }
+
+        #chapter-header-title {
+            font-size: 14px;
+            font-style: italic;
+            color: var(--text-dim);
+            margin-bottom: 8px;
+            padding: 0 8px;
+        }
+
+        #paper-wrapper {
+            flex: 1;
+            background-color: var(--paper);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-radius: 8px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* Campo de Escritura */
+        #editor {
+            min-height: 100%;
+            outline: none;
+            font-size: var(--font-size);
+            line-height: 1.7;
+            padding-left: var(--margin-left);
+            padding-right: var(--margin-left);
+            padding-top: var(--margin-top);
+            padding-bottom: calc(var(--margin-top) + 120px); /* Evitar solape con teclado virtual */
+            word-wrap: break-word;
+        }
+
+        #editor p {
+            margin-bottom: 12px;
+            text-indent: var(--indent);
+        }
+
+        /* Barra de Estado */
+        #statusbar {
+            height: 24px;
+            background-color: var(--status-bg);
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            font-size: 11px;
+            color: var(--text-dim);
+            z-index: 10;
+        }
+
+        /* Modo Flujo / Zen */
+        body.flow-mode #toolbar,
+        body.flow-mode #sidebar,
+        body.flow-mode #statusbar,
+        body.flow-mode #chapter-header-title {
+            display: none !important;
+        }
+        body.flow-mode #app-container { height: 100vh; }
+        body.flow-mode #editor-container { padding: 0; }
+        body.flow-mode #paper-wrapper { box-shadow: none; border-radius: 0; }
+        body.flow-mode #editor {
+            max-width: 700px;
+            margin: 0 auto;
+            padding-top: 60px;
+        }
+
+        /* Hint flotante de salida modo flujo */
+        #flow-hint {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 10000;
+        }
+        body.flow-mode #flow-hint { display: block; }
+
+        /* Adaptación Responsiva Celulares */
+        @media (max-width: 768px) {
+            #sidebar {
+                position: absolute;
+                left: 0;
+                bottom: 0;
+                width: 100%;
+                height: 70vh;
+                transform: translateY(100%);
+                z-index: 2000;
+                box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+                border-radius: 16px 16px 0 0;
+                border-right: none;
+                border-top: 2px solid var(--accent);
+            }
+            #sidebar.open { transform: translateY(0); }
+            var {
+                --margin-left: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Toolbar Superior -->
+    <div id="toolbar">
+        <button class="btn" id="btn-sidebar-toggle" onclick="toggleSidebar()">📂 Estructura</button>
+        <div class="sep"></div>
+        <button class="btn" onclick="execCmd('bold')"><b>B</b></button>
+        <button class="btn" onclick="execCmd('italic')"><i>I</i></button>
+        <button class="btn" onclick="execCmd('underline')"><u>U</u></button>
+        <div class="sep"></div>
+        <button class="btn" onclick="execCmd('justifyLeft')">⟵</button>
+        <button class="btn" onclick="execCmd('justifyCenter')">≡</button>
+        <button class="btn" onclick="execCmd('justifyRight')">⟶</button>
+        <div class="sep"></div>
+        <button class="btn btn-voice" id="btn-voice" onclick="toggleVoice()">🎤</button>
+        <div class="sep"></div>
+        <button class="btn" onclick="exportarJSON()">💾 JSON</button>
+        <button class="btn" onclick="exportarPDF()">📄 PDF</button>
+        <button class="btn" onclick="exportarEPUB()">📖 EPUB</button>
+        <div class="sep"></div>
+        <button class="btn" onclick="toggleTheme()">☀/☾</button>
+        <button class="btn" onclick="toggleFlowMode()">Flujo (F11)</button>
+    </div>
+
+    <!-- Área de Trabajo Principal -->
+    <div id="app-container">
+        <!-- Barra Lateral Estructura -->
+        <div id="sidebar" class="open">
+            <div class="sidebar-header">
+                <span>ESTRUCTURA</span>
+                <button class="btn" onclick="toggleSidebar()" style="padding:0; font-size:11px;">✕</button>
+            </div>
+            <div id="tree-view"></div>
+            <div class="sidebar-actions">
+                <button class="btn" onclick="addVolume()">+ Tomo</button>
+                <button class="btn" onclick="addChapter()">+ Cap.</button>
+            </div>
+        </div>
+
+        <!-- Panel del Editor -->
+        <div id="editor-container">
+            <div id="chapter-header-title">Selecciona un capítulo para comenzar...</div>
+            <div id="paper-wrapper">
+                <div id="editor" contenteditable="true" oninput="onEditorInput()"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barra de Estado Inferior -->
+    <div id="statusbar">
+        <span id="lbl-status">Listo.</span>
+        <span id="lbl-words">0 palabras</span>
+    </div>
+
+    <!-- Hint modo flujo -->
+    <div id="flow-hint">Presiona pantalla o inclina para salir del Modo Flujo</div>
+
+    <script>
+        // Modelo de datos global
+        let project = {
+            id: crypto.randomUUID(),
+            title: "Nuevo Libro Web",
+            author: "Autor",
+            genre: "",
+            synopsis: "",
+            creation_date: new Date().toLocaleString(),
+            last_modified: new Date().toLocaleString(),
+            items: []
+        };
+
+        let currentActiveId = null;
+        let isDirty = false;
+        let recognition = null;
+        let isRecording = false;
+
+        // Inicialización
+        window.addEventListener('DOMContentLoaded', () => {
+            cargarLocal();
+            initSpeechRecognition();
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'F11') { e.preventDefault(); toggleFlowMode(); }
+            });
+            // Cerrar sidebar táctil al pulsar el editor en móviles
+            document.getElementById('editor').addEventListener('click', () => {
+                if(window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+            });
+        });
+
+        function updateStatus(msg) {
+            document.getElementById('lbl-status').innerText = msg;
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.body.getAttribute('data-theme');
+            const nextTheme = currentTheme === 'noche' ? 'dia' : 'noche';
+            document.body.setAttribute('data-theme', nextTheme);
+            localStorage.setItem('hermilano_theme', nextTheme);
+        }
+
+        function toggleFlowMode() {
+            document.body.classList.toggle('flow-mode');
+            if(document.body.classList.contains('flow-mode')) {
+                updateStatus("Modo Flujo Activo.");
+            } else {
+                updateStatus("Listo.");
+            }
+        }
+
+        // Salida táctil del modo flujo
+        document.getElementById('flow-hint').addEventListener('click', toggleFlowMode);
+
+        function execCmd(command) {
+            document.execCommand(command, false, null);
+            document.getElementById('editor').focus();
+            onEditorInput();
+        }
+
+        // Estructura del Libro
+        function renderTree() {
+            const container = document.getElementById('tree-view');
+            container.innerHTML = '';
+
+            project.items.forEach(item => {
+                if (item.type === 'volume') {
+                    const volDiv = document.createElement('div');
+                    volDiv.className = `tree-item volume ${currentActiveId === item.id ? 'active' : ''}`;
+                    volDiv.innerHTML = `📖 ${item.name}`;
+                    volDiv.onclick = () => selectItem(item.id);
+                    container.appendChild(volDiv);
+
+                    (item.chapters || []).forEach(ch => {
+                        const chDiv = document.createElement('div');
+                        chDiv.className = `tree-item chapter ${currentActiveId === ch.id ? 'active' : ''}`;
+                        chDiv.innerHTML = `○ ${ch.name}`;
+                        chDiv.onclick = () => selectItem(ch.id);
+                        container.appendChild(chDiv);
+                    });
+                } else {
+                    const chDiv = document.createElement('div');
+                    chDiv.className = `tree-item ${currentActiveId === item.id ? 'active' : ''}`;
+                    chDiv.innerHTML = `📄 ○ ${item.name}`;
+                    chDiv.onclick = () => selectItem(item.id);
+                    container.appendChild(chDiv);
+                }
+            });
+            actualizarContadorPalabrasLibro();
+        }
+
+        function addVolume() {
+            const name = prompt("Nombre del Tomo / Volumen:");
+            if (!name) return;
+            project.items.push({
+                id: crypto.randomUUID(),
+                type: 'volume',
+                name: name,
+                chapters: []
+            });
+            guardarLocal();
+            renderTree();
+        }
+
+        function addChapter() {
+            const name = prompt("Nombre del Capítulo:");
+            if (!name) return;
+            
+            const activeItem = findItem(currentActiveId);
+            if (activeItem && activeItem.type === 'volume') {
+                activeItem.chapters.push({
+                    id: crypto.randomUUID(),
+                    type: 'chapter',
+                    name: name,
+                    content: '',
+                    word_count: 0
+                });
+            } else {
+                project.items.push({
+                    id: crypto.randomUUID(),
+                    type: 'chapter',
+                    name: name,
+                    content: '',
+                    word_count: 0
+                });
+            }
+            guardarLocal();
+            renderTree();
+        }
+
+        function selectItem(id) {
+            salvarCapituloActual();
+            currentActiveId = id;
+            const item = findItem(id);
+            if (item && item.type === 'chapter') {
+                document.getElementById('chapter-header-title').innerText = item.name;
+                document.getElementById('editor').innerHTML = item.content || '<p><br></p>';
+            } else if (item && item.type === 'volume') {
+                document.getElementById('chapter-header-title').innerText = `Volumen: ${item.name}`;
+                document.getElementById('editor').innerHTML = `<p style="text-align:center;"><i>${item.name}</i></p>`;
+            }
+            renderTree();
+        }
+
+        function findItem(id, list = project.items) {
+            for (let item of list) {
+                if (item.id === id) return item;
+                if (item.type === 'volume' && item.chapters) {
+                    let found = findItem(id, item.chapters);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        function salvarCapituloActual() {
+            if (!currentActiveId) return;
+            const item = findItem(currentActiveId);
+            if (item && item.type === 'chapter') {
+                item.content = document.getElementById('editor').innerHTML;
+                item.word_count = contarPalabras(document.getElementById('editor').innerText);
+            }
+        }
+
+        function onEditorInput() {
+            isDirty = true;
+            const text = document.getElementById('editor').innerText;
+            const count = contarPalabras(text);
+            document.getElementById('lbl-words').innerText = `${count} palabras`;
+        }
+
+        function contarPalabras(str) {
+            return str.trim() === '' ? 0 : str.trim().split(/\s+/).length;
+        }
+
+        function actualizarContadorPalabrasLibro() {
+            let total = 0;
+            const recorrer = (list) => {
+                list.forEach(i => {
+                    if(i.word_count) total += i.word_count;
+                    if(i.chapters) recorrer(i.chapters);
+                });
+            };
+            recorrer(project.items);
+            if(!document.body.classList.contains('flow-mode')) {
+                document.getElementById('lbl-words').innerText = `Libro: ${total} p.`;
+            }
+        }
+
+        // Reconocimiento de Voz (Web Speech API)
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                document.getElementById('btn-voice').style.display = 'none';
+                return;
+            }
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.lang = 'es-ES';
+
+            recognition.onresult = (event) => {
+                const resultIndex = event.resultIndex;
+                const transcript = event.results[resultIndex][0].transcript;
+                inyectarTextoVoz(transcript);
+            };
+
+            recognition.onerror = (e) => {
+                console.error("Speech Error: ", e);
+                stopVoice();
+            };
+
+            recognition.onend = () => {
+                if (isRecording) recognition.start(); // Auto-restart seguro
+            };
+        }
+
+        function toggleVoice() {
+            if (!recognition) return;
+            if (isRecording) {
+                stopVoice();
+            } else {
+                startVoice();
+            }
+        }
+
+        function startVoice() {
+            isRecording = true;
+            recognition.start();
+            document.getElementById('btn-voice').classList.add('recording');
+            updateStatus("🎤 Dictado por voz activo...");
+        }
+
+        function stopVoice() {
+            isRecording = false;
+            recognition.stop();
+            document.getElementById('btn-voice').classList.remove('recording');
+            updateStatus("Listo.");
+        }
+
+        function inyectarTextoVoz(text) {
+            const editor = document.getElementById('editor');
+            editor.focus();
+            
+            // Inserción limpia usando la selección nativa del DOM
+            const sel = window.getSelection();
+            if (sel.getRangeAt && sel.rangeCount) {
+                let range = sel.getRangeAt(0);
+                range.deleteContents();
+                let textNode = document.createTextNode(text + " ");
+                range.insertNode(textNode);
+                range.setStartAfter(textNode);
+                range.setEndAfter(textNode);
+                sel.removeAllRanges();
+                sel.addRange(range);
+            } else {
+                editor.innerHTML += ` ${text} `;
+            }
+            onEditorInput();
+        }
+
+        // Persistencia Local
+        function guardarLocal() {
+            salvarCapituloActual();
+            project.last_modified = new Date().toLocaleString();
+            localStorage.setItem('hermilano_project', JSON.stringify(project));
+        }
+
+        function cargarLocal() {
+            const saved = localStorage.getItem('hermilano_project');
+            if (saved) {
+                try { project = JSON.parse(saved); } catch(e) { console.error(e); }
+            }
+            const theme = localStorage.getItem('hermilano_theme') || 'dia';
+            document.body.setAttribute('data-theme', theme);
+            renderTree();
+        }
+
+        // Auto-guardado en background intermitente
+        setInterval(() => {
+            if (isDirty) {
+                guardarLocal();
+                isDirty = false;
+                updateStatus("Autoguardado local completo.");
+            }
+        }, 10000);
+
+        // Exportadores Client-Side
+        function exportarJSON() {
+            guardarLocal();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(project, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `${project.title.replace(/\s+/g, '_')}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function cleanText(text) {
+            return text.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/—/g, '-');
+        }
+
+        function exportarPDF() {
+            salvarCapituloActual();
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
+            let y = 20;
+
+            pdf.setFont("Helvetica", "bold");
+            pdf.setFontSize(22);
+            pdf.text(cleanText(project.title), 20, y);
+            y += 15;
+
+            const recorrerYImprimir = (items) => {
+                items.forEach(item => {
+                    if (y > 270) { pdf.addPage(); y = 20; }
+                    if (item.type === 'volume') {
+                        pdf.setFont("Helvetica", "bold");
+                        pdf.setFontSize(16);
+                        pdf.text(cleanText(item.name), 20, y);
+                        y += 12;
+                        if(item.chapters) recorrerYImprimir(item.chapters);
+                    } else {
+                        pdf.setFont("Helvetica", "bold");
+                        pdf.setFontSize(14);
+                        pdf.text(cleanText(item.name), 20, y);
+                        y += 10;
+                        
+                        pdf.setFont("Helvetica", "normal");
+                        pdf.setFontSize(11);
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = item.content || '';
+                        const lines = pdf.splitTextToSize(cleanText(tempDiv.innerText), 170);
+                        lines.forEach(line => {
+                            if (y > 270) { pdf.addPage(); y = 20; }
+                            pdf.text(line, 25, y);
+                            y += 6;
+                        });
+                        y += 10;
+                    }
+                });
+            };
+
+            recorrerYImprimir(project.items);
+            pdf.save(`${project.title.replace(/\s+/g, '_')}.pdf`);
+        }
+
+        function exportarEPUB() {
+            salvarCapituloActual();
+            const zip = new JSZip();
+            
+            // Estructura mínima OCF contenedor estándar
+            zip.file("mimetype", "application/epub+zip", { compression: "STORE" });
+            
+            const metaInf = zip.folder("META-INF");
+            metaInf.file("container.xml", `<?xml version="1.0"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="OEBPS/content.opf" media-type="application/oebspackage+xml"/>
+  </rootfiles>
+</container>`);
+
+            const oebps = zip.folder("OEBPS");
+            oebps.file("stylesheet.css", `body { font-family: serif; padding: 1em; line-height: 1.5; } h1, h2 { text-align: center; } p { text-indent: 1.5em; margin: 0 0 0.5em 0; }`);
+
+            let manifestItems = '';
+            let spineItems = '';
+            let htmlFiles = [];
+
+            const procesarItems = (list) => {
+                list.forEach((item, index) => {
+                    if(item.type === 'chapter') {
+                        const filename = `chapter_${item.id}.html`;
+                        const fileContent = `<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><title>${item.name}</title><link rel="stylesheet" href="stylesheet.css" type="text/css"/></head>
+<body><h2>${item.name}</h2>${item.content}</body>
+</html>`;
+                        oebps.file(filename, fileContent);
+                        manifestItems += `<item id="ch_${item.id}" href="${filename}" media-type="application/xhtml+xml"/>\n`;
+                        spineItems += `<itemref idref="ch_${item.id}"/>\n`;
+                    } else if (item.chapters) {
+                        procesarItems(item.chapters);
+                    }
+                });
+            };
+            procesarItems(project.items);
+
+            const contentOpf = `<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="bookid" version="2.0">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:title>${project.title}</dc:title>
+    <dc:creator>${project.author}</dc:creator>
+    <dc:identifier id="bookid">urn:uuid:${project.id}</dc:identifier>
+    <dc:language>es</dc:language>
+  </metadata>
+  <manifest>
+    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
+    <item id="css" href="stylesheet.css" media-type="text/css"/>
+    ${manifestItems}
+  </manifest>
+  <spine toc="ncx">
+    ${spineItems}
+  </spine>
+</package>`;
+
+            const tocNcx = `<?xml version="1.0" encoding="utf-8"?>
+<ncx xmlns="http://www.idpf.org/2007/ncx" version="2005-1">
+  <head>
+    <meta name="dtb:uid" content="urn:uuid:${project.id}"/>
+    <meta name="dtb:depth" content="1"/>
+  </head>
+  <docTitle><text>${project.title}</text></docTitle>
+  <navMap>
+     <!-- Tabla de contenidos simplificada -->
+  </navMap>
+</ncx>`;
+
+            oebps.file("content.opf", contentOpf);
+            oebps.file("toc.ncx", tocNcx);
+
+            zip.generateAsync({ type: "blob" }).then(function (blob) {
+                const blobUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = `${project.title.replace(/\s+/g, '_')}.epub`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            });
+        }
+    </script>
+</body>
+</html>
