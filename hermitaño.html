@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#131110">
-    <title>El Hermilaño v3 — Edición Web Corregida</title>
-    
+    <title>El Hermitaño v3 — Edición Web Corregida</title>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
@@ -128,6 +128,7 @@
         #tree-view {
             flex: 1;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             padding: 8px;
         }
 
@@ -137,21 +138,31 @@
             align-items: center;
             padding: 10px;
             border-radius: 6px;
-            cursor: grab;
+            cursor: pointer;
             font-size: 14px;
             margin-bottom: 4px;
             user-select: none;
             background-color: transparent;
             border: 1px solid transparent;
             position: relative;
+            touch-action: pan-y; /* permite el scroll vertical normal de la lista */
         }
-        .tree-item:active { cursor: grabbing; }
         .tree-item:hover { background-color: var(--selection); }
         .tree-item.active { background-color: var(--accent); color: #FFF; }
         .tree-item.volume { font-weight: bold; }
         .tree-item.chapter { margin-left: 16px; }
         .tree-item.drag-over { border: 2px dashed var(--accent); background-color: var(--selection); }
-        
+
+        .drag-handle {
+            cursor: grab;
+            padding-right: 8px;
+            color: var(--text-dim);
+            touch-action: none; /* solo el "agarre" intercepta el gesto táctil para arrastrar */
+            font-size: 16px;
+            line-height: 1;
+        }
+        .tree-item.active .drag-handle { color: rgba(255,255,255,0.8); }
+
         .item-actions {
             margin-left: auto;
             display: flex;
@@ -232,22 +243,34 @@
             z-index: 10;
         }
 
-        /* Responsive Móvil: Orientación Vertical */
+        /* Fondo oscuro detrás del panel lateral cuando está abierto en móvil */
+        #sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 90;
+        }
+
+        /* Responsive Móvil: Orientación Vertical — cajón deslizante DESDE LA IZQUIERDA */
         @media (max-width: 768px) and (orientation: portrait) {
             #sidebar {
-                position: absolute;
+                position: fixed;
                 left: 0;
-                bottom: 0;
-                width: 100%;
-                height: 50vh;
-                transform: translateY(100%);
+                top: 44px;
+                bottom: 24px;
+                width: 85%;
+                max-width: 320px;
+                height: auto;
+                transform: translateX(-100%);
                 transition: transform 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
-                box-shadow: 0 -4px 24px rgba(0,0,0,0.2);
-                border-radius: 16px 16px 0 0;
-                border-right: none;
-                border-top: 2px solid var(--accent);
+                box-shadow: 4px 0 24px rgba(0,0,0,0.3);
+                border-radius: 0 16px 16px 0;
+                border-right: 2px solid var(--accent);
+                border-top: none;
+                z-index: 100;
             }
-            #sidebar.open { transform: translateY(0); }
+            #sidebar.open { transform: translateX(0); }
             :root { --margin-left: 24px; }
         }
 
@@ -264,7 +287,7 @@
             #btn-sidebar-toggle { display: none; }
         }
 
-        body.flow-mode #toolbar, body.flow-mode #sidebar, body.flow-mode #statusbar { display: none !important; }
+        body.flow-mode #toolbar, body.flow-mode #sidebar, body.flow-mode #statusbar, body.flow-mode #sidebar-backdrop { display: none !important; }
         body.flow-mode #app-container { height: 100vh; }
         body.flow-mode #editor-container { padding: 0; }
         body.flow-mode #paper-wrapper { box-shadow: none; border-radius: 0; }
@@ -282,6 +305,7 @@
         <div class="sep"></div>
         <button class="btn" id="btn-voice" onclick="toggleVoice()">🎤 Dictar</button>
         <div class="sep"></div>
+        <button class="btn" onclick="abrirArchivo()">📂 Abrir</button>
         <button class="btn" onclick="guardarArchivoJSON(true)">💾 Guardar Como...</button>
         <button class="btn" onclick="guardarArchivoJSON(false)">💾 Actualizar Cambios</button>
         <button class="btn" onclick="exportarPDF()">📄 PDF</button>
@@ -291,8 +315,10 @@
         <button class="btn" onclick="document.body.classList.toggle('flow-mode')">Modo Zen</button>
     </div>
 
+    <input type="file" id="input-abrir-archivo" accept=".json,application/json" style="display:none" onchange="manejarInputArchivo(event)">
+
     <div id="app-container">
-        <div id="sidebar" class="open">
+        <div id="sidebar">
             <div class="sidebar-header">
                 <span>ESTRUCTURA LIBRO</span>
             </div>
@@ -302,6 +328,8 @@
                 <button class="btn" onclick="addChapter()">+ Cap.</button>
             </div>
         </div>
+
+        <div id="sidebar-backdrop" onclick="toggleSidebar()"></div>
 
         <div id="editor-container">
             <div id="chapter-header-title">Elige o crea un tomo o capítulo a la izquierda...</div>
@@ -335,10 +363,36 @@
             cargarLocal();
             initSpeechRecognition();
             setupGlobalDragEvents();
+            ajustarSidebarInicial();
         });
 
+        window.addEventListener('resize', ajustarSidebarInicial);
+
+        function esMovilVertical() {
+            return window.matchMedia('(max-width: 768px) and (orientation: portrait)').matches;
+        }
+
+        function ajustarSidebarInicial() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            if (esMovilVertical()) {
+                sidebar.classList.remove('open');
+                if (backdrop) backdrop.style.display = 'none';
+            } else {
+                sidebar.classList.add('open');
+                if (backdrop) backdrop.style.display = 'none';
+            }
+        }
+
         function updateStatus(msg) { document.getElementById('lbl-status').innerText = msg; }
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            sidebar.classList.toggle('open');
+            const abierto = sidebar.classList.contains('open');
+            if (backdrop) backdrop.style.display = (abierto && esMovilVertical()) ? 'block' : 'none';
+        }
 
         function toggleTheme() {
             const nextTheme = document.body.getAttribute('data-theme') === 'noche' ? 'dia' : 'noche';
@@ -374,7 +428,7 @@
         function createTreeElement(item, isChild, parentId = null) {
             const div = document.createElement('div');
             div.className = `tree-item ${item.type === 'volume' ? 'volume' : 'chapter'} ${currentActiveId === item.id ? 'active' : ''}`;
-            div.innerHTML = `${item.type === 'volume' ? '📖' : '📄'} ${item.name} <div class="item-actions"><button class="btn-del" onclick="deleteItem(event, '${item.id}', '${parentId}')">✕</button></div>`;
+            div.innerHTML = `<span class="drag-handle" aria-hidden="true">⠿</span>${item.type === 'volume' ? '📖' : '📄'} ${item.name} <div class="item-actions"><button class="btn-del" onclick="deleteItem(event, '${item.id}', '${parentId}')">✕</button></div>`;
             div.setAttribute('draggable', 'true');
             div.setAttribute('data-id', item.id);
             if(parentId) div.setAttribute('data-parent-id', parentId);
@@ -385,29 +439,31 @@
                 selectItem(item.id);
             });
 
-            // Implementación Drag and Drop API estándar (PC)
+            // Implementación Drag and Drop API estándar (PC) — sobre todo el elemento, no afecta al táctil
             div.addEventListener('dragstart', (e) => { draggedId = item.id; e.dataTransfer.setData('text/plain', item.id); });
             div.addEventListener('dragover', (e) => { e.preventDefault(); div.classList.add('drag-over'); });
             div.addEventListener('dragleave', () => div.classList.remove('drag-over'));
             div.addEventListener('drop', (e) => { e.preventDefault(); div.classList.remove('drag-over'); handleDrop(draggedId, item.id); });
 
-            // Implementación Touch Drag (Celulares/Tablets)
-            div.addEventListener('touchstart', (e) => { draggedId = item.id; }, {passive: true});
-            div.addEventListener('touchmove', (e) => {
+            // Implementación Touch Drag (Celulares/Tablets) — SOLO desde el "asa" (⠿)
+            // para no bloquear el scroll normal de la lista al tocar cualquier parte del ítem.
+            const handle = div.querySelector('.drag-handle');
+            handle.addEventListener('touchstart', (e) => { draggedId = item.id; e.stopPropagation(); }, {passive: true});
+            handle.addEventListener('touchmove', (e) => {
                 e.preventDefault();
                 const touch = e.touches[0];
                 const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
                 const closestItem = targetEl ? targetEl.closest('.tree-item') : null;
-                
+
                 document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('drag-over'));
                 if(closestItem) closestItem.classList.add('drag-over');
             }, {passive: false});
 
-            div.addEventListener('touchend', (e) => {
+            handle.addEventListener('touchend', (e) => {
                 const touch = e.changedTouches[0];
                 const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
                 const closestItem = targetEl ? targetEl.closest('.tree-item') : null;
-                
+
                 document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('drag-over'));
                 if(closestItem) {
                     const targetId = closestItem.getAttribute('data-id');
@@ -509,6 +565,13 @@
                 document.getElementById('lbl-words').innerText = `${count} palabras`;
             }
             renderTree();
+
+            // En móvil vertical, cerrar el cajón lateral al elegir un capítulo
+            if (esMovilVertical()) {
+                document.getElementById('sidebar').classList.remove('open');
+                const backdrop = document.getElementById('sidebar-backdrop');
+                if (backdrop) backdrop.style.display = 'none';
+            }
         }
 
         function findItem(id, list = project.items) {
@@ -604,6 +667,64 @@
             onEditorInput();
         }
 
+        // ---------- ABRIR ARCHIVO ----------
+        // En PC/Mac con Chrome o Edge usa File System Access API (permite luego
+        // "Actualizar Cambios" escribiendo directo sobre el mismo archivo físico).
+        // En Android/iOS (no soportado) cae al <input type="file"> clásico.
+        async function abrirArchivo() {
+            if (isDirty) {
+                const continuar = confirm("Tienes cambios sin guardar en el libro actual. ¿Deseas abrir otro archivo de todas formas? (los cambios actuales quedarán en el navegador, pero perderás la referencia al archivo abierto)");
+                if (!continuar) return;
+            }
+
+            if (window.showOpenFilePicker) {
+                try {
+                    const [handle] = await window.showOpenFilePicker({
+                        types: [{ description: 'Archivo Hermitaño JSON', accept: { 'application/json': ['.json'] } }]
+                    });
+                    fileHandle = handle;
+                    const file = await handle.getFile();
+                    const text = await file.text();
+                    cargarProyectoDesdeTexto(text, file.name);
+                    return;
+                } catch (err) {
+                    console.warn("Selección cancelada o fallo, usando fallback clásico.", err);
+                    if (err && err.name === 'AbortError') return; // el usuario canceló el diálogo
+                }
+            }
+
+            // Fallback clásico (necesario en Android/Chrome móvil, que no soporta showOpenFilePicker)
+            document.getElementById('input-abrir-archivo').click();
+        }
+
+        function manejarInputArchivo(event) {
+            const file = event.target.files[0];
+            event.target.value = ''; // permite volver a elegir el mismo archivo más adelante
+            if (!file) return;
+            fileHandle = null; // sin API nativa no hay puntero físico; "Actualizar Cambios" pedirá ubicación
+            const reader = new FileReader();
+            reader.onload = (e) => cargarProyectoDesdeTexto(e.target.result, file.name);
+            reader.onerror = () => alert("No se pudo leer el archivo seleccionado.");
+            reader.readAsText(file);
+        }
+
+        function cargarProyectoDesdeTexto(text, nombreArchivo) {
+            try {
+                const data = JSON.parse(text);
+                if (!data || !Array.isArray(data.items)) throw new Error('Formato inválido: falta "items".');
+                project = data;
+                currentActiveId = null;
+                document.getElementById('editor').innerHTML = '';
+                document.getElementById('chapter-header-title').innerText = 'Elige o crea un tomo o capítulo a la izquierda...';
+                guardarLocal();
+                renderTree();
+                updateStatus(`✓ Archivo cargado: ${nombreArchivo || project.title}`);
+            } catch (e) {
+                console.error(e);
+                alert("No se pudo leer el archivo: el formato no es un proyecto de El Hermitaño válido.");
+            }
+        }
+
         // File System Access API para Sobrescribir el Archivo Real Sin Descargar Copias
         async function guardarArchivoJSON(forcePick = false) {
             salvarCapituloActual();
@@ -616,7 +737,7 @@
                     if (!fileHandle || forcePick) {
                         fileHandle = await window.showSaveFilePicker({
                             suggestedName: `${project.title.replace(/\s+/g, '_')}.json`,
-                            types: [{ description: 'Archivo Hermilaño JSON', accept: { 'application/json': ['.json'] } }]
+                            types: [{ description: 'Archivo Hermitaño JSON', accept: { 'application/json': ['.json'] } }]
                         });
                     }
                     const writable = await fileHandle.createWritable();
@@ -659,7 +780,7 @@
             const { jsPDF } = window.jspdf; const pdf = new jsPDF(); let y = 20;
             pdf.setFont("Helvetica", "bold"); pdf.text(project.title, 20, y); y += 20;
             pdf.setFont("Helvetica", "normal"); pdf.setFontSize(11);
-            
+
             const printList = (list) => {
                 list.forEach(i => {
                     if (y > 260) { pdf.addPage(); y = 20; }
@@ -685,7 +806,7 @@
             metainf.file("container.xml", `<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebspackage+xml"/></rootfiles></container>`);
             const oebps = zip.folder("OEBPS");
             oebps.file("stylesheet.css", `body{font-family:serif;padding:1em;} h2{text-align:center;}`);
-            
+
             let manifest = '', spine = '';
             const build = (list) => {
                 list.forEach(i => {
