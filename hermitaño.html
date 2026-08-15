@@ -282,6 +282,8 @@
         }
         .menu-item:hover { background-color: var(--selection); }
         .menu-sep { height: 1px; background-color: var(--border); margin: 4px 6px; }
+        #menu-align-group { display: none; } /* solo se muestra en móvil vertical, ver media query abajo */
+        .align-btn svg { display: block; }
 
         /* Fondo oscuro detrás del panel lateral cuando está abierto en móvil */
         #sidebar-backdrop {
@@ -312,6 +314,8 @@
             }
             #sidebar.open { transform: translateX(0); }
             :root { --margin-left: 24px; }
+            .align-btn { display: none !important; }
+            #menu-align-group { display: flex; flex-direction: column; }
         }
 
         /* Responsive Móvil: Orientación Horizontal (Mantiene panel izquierdo como PC) */
@@ -366,15 +370,21 @@
         <button class="btn" onclick="execCmd('italic')"><i>I</i></button>
         <button class="btn" onclick="execCmd('underline')"><u>U</u></button>
         <div class="sep"></div>
-        <button class="btn" onclick="execCmd('justifyLeft')" title="Alinear a la izquierda">Izq</button>
-        <button class="btn" onclick="execCmd('justifyCenter')" title="Centrar">Centro</button>
-        <button class="btn" onclick="execCmd('justifyRight')" title="Alinear a la derecha">Der</button>
-        <div class="sep"></div>
+        <button class="btn align-btn" onclick="execCmd('justifyLeft')" title="Alinear a la izquierda"><svg viewBox="0 0 18 14" width="16" height="14"><rect x="1" y="1" width="16" height="2" fill="currentColor"/><rect x="1" y="6" width="10" height="2" fill="currentColor"/><rect x="1" y="11" width="13" height="2" fill="currentColor"/></svg></button>
+        <button class="btn align-btn" onclick="execCmd('justifyCenter')" title="Centrar"><svg viewBox="0 0 18 14" width="16" height="14"><rect x="1" y="1" width="16" height="2" fill="currentColor"/><rect x="4" y="6" width="10" height="2" fill="currentColor"/><rect x="2.5" y="11" width="13" height="2" fill="currentColor"/></svg></button>
+        <button class="btn align-btn" onclick="execCmd('justifyRight')" title="Alinear a la derecha"><svg viewBox="0 0 18 14" width="16" height="14"><rect x="1" y="1" width="16" height="2" fill="currentColor"/><rect x="7" y="6" width="10" height="2" fill="currentColor"/><rect x="4" y="11" width="13" height="2" fill="currentColor"/></svg></button>
+        <div class="sep align-btn"></div>
         <button class="btn" id="btn-voice" onclick="toggleVoice()">🎤 Dictar</button>
         <button class="btn" id="btn-menu-mas" onclick="toggleMenuMas(event)" style="margin-left:auto;">⋮ Más</button>
     </div>
 
     <div id="dropdown-menu">
+        <div id="menu-align-group">
+            <button class="menu-item" onclick="cerrarMenuMasYEjecutar(() => execCmd('justifyLeft'))">⯇ Alinear izquierda</button>
+            <button class="menu-item" onclick="cerrarMenuMasYEjecutar(() => execCmd('justifyCenter'))">≡ Centrar</button>
+            <button class="menu-item" onclick="cerrarMenuMasYEjecutar(() => execCmd('justifyRight'))">⯈ Alinear derecha</button>
+            <div class="menu-sep"></div>
+        </div>
         <button class="menu-item" onclick="cerrarMenuMasYEjecutar(nuevoLibro)">🆕 Nuevo</button>
         <div class="menu-sep"></div>
         <button class="menu-item" onclick="cerrarMenuMasYEjecutar(abrirArchivo)">📂 Abrir</button>
@@ -967,35 +977,53 @@
         // ---------- ENVIAR / COMPARTIR (Opción A: Web Share API) ----------
         // Arma el .epub y abre el panel nativo de "Compartir" de Android/iOS,
         // donde el usuario elige Gmail, la app de Kindle, WhatsApp, etc.
-        // En escritorio (sin soporte de archivos en Web Share) cae a descarga normal.
+        // Cualquier fallo cae SIEMPRE a una descarga real + alerta visible,
+        // nunca se queda "sin hacer nada" en silencio.
+        function descargarBlob(blob, nombreArchivo) {
+            const u = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = u; a.download = nombreArchivo; a.click();
+            URL.revokeObjectURL(u);
+        }
+
         async function enviarLibro() {
             updateStatus("Preparando libro para enviar...");
+            let blob;
             try {
-                const blob = await construirEpubBlob();
-                const nombreArchivo = `${project.title.replace(/\s+/g, '_')}.epub`;
-                const file = new File([blob], nombreArchivo, { type: 'application/epub+zip' });
+                blob = await construirEpubBlob();
+            } catch (err) {
+                console.error(err);
+                alert("No se pudo generar el EPUB para enviar. Revisa tu conexión a internet (la primera vez necesita cargar una librería) e inténtalo de nuevo.");
+                updateStatus("Error al generar el EPUB.");
+                return;
+            }
 
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({
-                        files: [file],
-                        title: project.title,
-                        text: `"${project.title}" — exportado desde El Hermitaño. Para Kindle: adjúntalo en un correo a tu-usuario@kindle.com desde Gmail, o ábrelo directo con la app de Kindle si la tienes instalada.`
-                    });
-                    updateStatus("✓ Panel de compartir abierto.");
-                } else {
-                    alert("Tu navegador no permite compartir archivos directamente (normal en PC de escritorio). Se descargará el EPUB: adjúntalo manualmente en Gmail o en tu app de Kindle.");
-                    const u = URL.createObjectURL(blob);
-                    const a = document.createElement('a'); a.href = u; a.download = nombreArchivo; a.click();
-                    URL.revokeObjectURL(u);
-                    updateStatus("EPUB descargado — adjúntalo manualmente.");
-                }
+            const nombreArchivo = `${project.title.replace(/\s+/g, '_')}.epub`;
+            const file = new File([blob], nombreArchivo, { type: 'application/epub+zip' });
+            const puedeCompartirArchivos = !!(navigator.share && navigator.canShare && navigator.canShare({ files: [file] }));
+
+            if (!puedeCompartirArchivos) {
+                alert("Tu navegador no permite compartir archivos directamente. Se descargará el EPUB: adjúntalo manualmente en Gmail o en tu app de Kindle.");
+                descargarBlob(blob, nombreArchivo);
+                updateStatus("EPUB descargado — adjúntalo manualmente.");
+                return;
+            }
+
+            try {
+                await navigator.share({
+                    files: [file],
+                    title: project.title,
+                    text: `"${project.title}" — exportado desde El Hermitaño. Para Kindle: adjúntalo en un correo a tu-usuario@kindle.com desde Gmail, o ábrelo directo con la app de Kindle si la tienes instalada.`
+                });
+                updateStatus("✓ Panel de compartir abierto.");
             } catch (err) {
                 if (err && err.name === 'AbortError') {
                     updateStatus("Envío cancelado.");
-                } else {
-                    console.error(err);
-                    updateStatus("No se pudo compartir el archivo.");
+                    return;
                 }
+                console.error(err);
+                alert("No se pudo abrir el panel de compartir (" + (err && err.message ? err.message : 'error desconocido') + "). Se descargará el EPUB para que lo adjuntes manualmente.");
+                descargarBlob(blob, nombreArchivo);
+                updateStatus("EPUB descargado — adjúntalo manualmente.");
             }
         }
     </script>
