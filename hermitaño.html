@@ -366,11 +366,17 @@
         <button class="btn" onclick="execCmd('italic')"><i>I</i></button>
         <button class="btn" onclick="execCmd('underline')"><u>U</u></button>
         <div class="sep"></div>
+        <button class="btn" onclick="execCmd('justifyLeft')" title="Alinear a la izquierda">Izq</button>
+        <button class="btn" onclick="execCmd('justifyCenter')" title="Centrar">Centro</button>
+        <button class="btn" onclick="execCmd('justifyRight')" title="Alinear a la derecha">Der</button>
+        <div class="sep"></div>
         <button class="btn" id="btn-voice" onclick="toggleVoice()">🎤 Dictar</button>
         <button class="btn" id="btn-menu-mas" onclick="toggleMenuMas(event)" style="margin-left:auto;">⋮ Más</button>
     </div>
 
     <div id="dropdown-menu">
+        <button class="menu-item" onclick="cerrarMenuMasYEjecutar(nuevoLibro)">🆕 Nuevo</button>
+        <div class="menu-sep"></div>
         <button class="menu-item" onclick="cerrarMenuMasYEjecutar(abrirArchivo)">📂 Abrir</button>
         <button class="menu-item" onclick="cerrarMenuMasYEjecutar(() => guardarArchivoJSON(true))">💾 Guardar Como...</button>
         <button class="menu-item" onclick="cerrarMenuMasYEjecutar(() => guardarArchivoJSON(false))">💾 Actualizar Cambios</button>
@@ -764,6 +770,29 @@
                 editor.innerHTML += ` ${text} `;
             }
             onEditorInput();
+        }
+
+        // ---------- NUEVO LIBRO ----------
+        function nuevoLibro() {
+            if (isDirty) {
+                const continuar = confirm("Tienes cambios sin guardar en el libro actual. ¿Deseas crear un libro nuevo de todas formas? Lo que no hayas guardado se perderá.");
+                if (!continuar) return;
+            }
+            salvarCapituloActual();
+            project = {
+                id: crypto.randomUUID(),
+                title: "Nuevo Libro",
+                author: "Andrés Prado",
+                items: []
+            };
+            currentActiveId = null;
+            fileHandle = null; // ya no hay archivo físico vinculado
+            isDirty = false;
+            document.getElementById('editor').innerHTML = '';
+            document.getElementById('chapter-header-title').innerText = 'Elige o crea un tomo o capítulo a la izquierda...';
+            guardarLocal();
+            renderTree();
+            updateStatus("✓ Nuevo libro creado.");
         }
 
         // ---------- ABRIR ARCHIVO ----------
