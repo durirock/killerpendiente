@@ -243,6 +243,46 @@
             z-index: 10;
         }
 
+        /* Menú desplegable "Más" — arriba a la derecha, retráctil al tocar fuera */
+        #dropdown-menu {
+            position: fixed;
+            top: 44px;
+            right: 8px;
+            background-color: var(--toolbar-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            min-width: 210px;
+            z-index: 200;
+            transform-origin: top right;
+            transform: scaleY(0.85) translateY(-6px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s ease, transform 0.15s ease;
+        }
+        #dropdown-menu.open {
+            opacity: 1;
+            transform: scaleY(1) translateY(0);
+            pointer-events: auto;
+        }
+        .menu-item {
+            background: transparent;
+            border: none;
+            color: var(--text);
+            text-align: left;
+            padding: 10px 12px;
+            font-family: 'Georgia', serif;
+            font-size: 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .menu-item:hover { background-color: var(--selection); }
+        .menu-sep { height: 1px; background-color: var(--border); margin: 4px 6px; }
+
         /* Fondo oscuro detrás del panel lateral cuando está abierto en móvil */
         #sidebar-backdrop {
             display: none;
@@ -287,7 +327,30 @@
             #btn-sidebar-toggle { display: none; }
         }
 
-        body.flow-mode #toolbar, body.flow-mode #sidebar, body.flow-mode #statusbar, body.flow-mode #sidebar-backdrop { display: none !important; }
+        /* Botón flotante para salir de Modo Zen — visible SOLO en ese modo,
+           para que nunca quede la app "atrapada" sin forma de recuperar la barra. */
+        #btn-salir-zen {
+            display: none;
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            z-index: 300;
+            background-color: var(--toolbar-bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.55;
+            cursor: pointer;
+        }
+        #btn-salir-zen:hover, #btn-salir-zen:active { opacity: 1; }
+        body.flow-mode #btn-salir-zen { display: flex; }
+
+        body.flow-mode #toolbar, body.flow-mode #sidebar, body.flow-mode #statusbar, body.flow-mode #sidebar-backdrop, body.flow-mode #dropdown-menu { display: none !important; }
         body.flow-mode #app-container { height: 100vh; }
         body.flow-mode #editor-container { padding: 0; }
         body.flow-mode #paper-wrapper { box-shadow: none; border-radius: 0; }
@@ -304,15 +367,19 @@
         <button class="btn" onclick="execCmd('underline')"><u>U</u></button>
         <div class="sep"></div>
         <button class="btn" id="btn-voice" onclick="toggleVoice()">🎤 Dictar</button>
-        <div class="sep"></div>
-        <button class="btn" onclick="abrirArchivo()">📂 Abrir</button>
-        <button class="btn" onclick="guardarArchivoJSON(true)">💾 Guardar Como...</button>
-        <button class="btn" onclick="guardarArchivoJSON(false)">💾 Actualizar Cambios</button>
-        <button class="btn" onclick="exportarPDF()">📄 PDF</button>
-        <button class="btn" onclick="exportarEPUB()">📖 EPUB</button>
-        <div class="sep"></div>
-        <button class="btn" onclick="toggleTheme()">☀/☾</button>
-        <button class="btn" onclick="document.body.classList.toggle('flow-mode')">Modo Zen</button>
+        <button class="btn" id="btn-menu-mas" onclick="toggleMenuMas(event)" style="margin-left:auto;">⋮ Más</button>
+    </div>
+
+    <div id="dropdown-menu">
+        <button class="menu-item" onclick="cerrarMenuMasYEjecutar(abrirArchivo)">📂 Abrir</button>
+        <button class="menu-item" onclick="cerrarMenuMasYEjecutar(() => guardarArchivoJSON(true))">💾 Guardar Como...</button>
+        <button class="menu-item" onclick="cerrarMenuMasYEjecutar(() => guardarArchivoJSON(false))">💾 Actualizar Cambios</button>
+        <button class="menu-item" onclick="cerrarMenuMasYEjecutar(exportarPDF)">📄 PDF</button>
+        <button class="menu-item" onclick="cerrarMenuMasYEjecutar(exportarEPUB)">📖 EPUB</button>
+        <button class="menu-item" onclick="cerrarMenuMasYEjecutar(enviarLibro)">📤 Enviar</button>
+        <div class="menu-sep"></div>
+        <button class="menu-item" onclick="cerrarMenuMasYEjecutar(toggleTheme)">☀/☾ Tema</button>
+        <button class="menu-item" onclick="cerrarMenuMasYEjecutar(() => document.body.classList.toggle('flow-mode'))">Modo Zen</button>
     </div>
 
     <input type="file" id="input-abrir-archivo" accept=".json,application/json" style="display:none" onchange="manejarInputArchivo(event)">
@@ -343,6 +410,8 @@
         <span id="lbl-status">Listo.</span>
         <span id="lbl-words">0 palabras</span>
     </div>
+
+    <button id="btn-salir-zen" onclick="document.body.classList.remove('flow-mode')" title="Salir de Modo Zen">✕</button>
 
     <script>
         let project = {
@@ -392,6 +461,36 @@
             sidebar.classList.toggle('open');
             const abierto = sidebar.classList.contains('open');
             if (backdrop) backdrop.style.display = (abierto && esMovilVertical()) ? 'block' : 'none';
+        }
+
+        // ---------- Menú desplegable "Más" ----------
+        function toggleMenuMas(e) {
+            e.stopPropagation();
+            const menu = document.getElementById('dropdown-menu');
+            const abierto = menu.classList.toggle('open');
+            if (abierto) {
+                document.addEventListener('click', cerrarMenuMasClickFuera);
+            } else {
+                document.removeEventListener('click', cerrarMenuMasClickFuera);
+            }
+        }
+
+        function cerrarMenuMasClickFuera(e) {
+            const menu = document.getElementById('dropdown-menu');
+            const trigger = document.getElementById('btn-menu-mas');
+            if (!menu.contains(e.target) && e.target !== trigger) {
+                cerrarMenuMas();
+            }
+        }
+
+        function cerrarMenuMas() {
+            document.getElementById('dropdown-menu').classList.remove('open');
+            document.removeEventListener('click', cerrarMenuMasClickFuera);
+        }
+
+        function cerrarMenuMasYEjecutar(fn) {
+            cerrarMenuMas();
+            fn();
         }
 
         function toggleTheme() {
@@ -798,7 +897,9 @@
             pdf.save(`${project.title.replace(/\s+/g, '_')}.pdf`);
         }
 
-        function exportarEPUB() {
+        // Construye el .epub y devuelve un Promise<Blob>. Reutilizado por
+        // exportarEPUB() (descarga) y enviarLibro() (compartir/enviar).
+        function construirEpubBlob() {
             salvarCapituloActual();
             const zip = new JSZip();
             zip.file("mimetype", "application/epub+zip", { compression: "STORE" });
@@ -821,10 +922,52 @@
             build(project.items);
 
             oebps.file("content.opf", `<?xml version="1.0"?><package xmlns="http://www.idpf.org/2007/opf" version="2.0" unique-identifier="id"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>${project.title}</dc:title><dc:language>es</dc:language></metadata><manifest><item id="css" href="stylesheet.css" media-type="text/css"/>${manifest}</manifest><spine>${spine}</spine></package>`);
-            zip.generateAsync({type:"blob"}).then(b => {
-                const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u;
-                a.download = `${project.title.replace(/\s+/g, '_')}.epub`; a.click();
+            return zip.generateAsync({type:"blob"});
+        }
+
+        function exportarEPUB() {
+            construirEpubBlob().then(b => {
+                const u = URL.createObjectURL(b);
+                const a = document.createElement('a'); a.href = u;
+                a.download = `${project.title.replace(/\s+/g, '_')}.epub`;
+                a.click();
+                URL.revokeObjectURL(u);
             });
+        }
+
+        // ---------- ENVIAR / COMPARTIR (Opción A: Web Share API) ----------
+        // Arma el .epub y abre el panel nativo de "Compartir" de Android/iOS,
+        // donde el usuario elige Gmail, la app de Kindle, WhatsApp, etc.
+        // En escritorio (sin soporte de archivos en Web Share) cae a descarga normal.
+        async function enviarLibro() {
+            updateStatus("Preparando libro para enviar...");
+            try {
+                const blob = await construirEpubBlob();
+                const nombreArchivo = `${project.title.replace(/\s+/g, '_')}.epub`;
+                const file = new File([blob], nombreArchivo, { type: 'application/epub+zip' });
+
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: project.title,
+                        text: `"${project.title}" — exportado desde El Hermitaño. Para Kindle: adjúntalo en un correo a tu-usuario@kindle.com desde Gmail, o ábrelo directo con la app de Kindle si la tienes instalada.`
+                    });
+                    updateStatus("✓ Panel de compartir abierto.");
+                } else {
+                    alert("Tu navegador no permite compartir archivos directamente (normal en PC de escritorio). Se descargará el EPUB: adjúntalo manualmente en Gmail o en tu app de Kindle.");
+                    const u = URL.createObjectURL(blob);
+                    const a = document.createElement('a'); a.href = u; a.download = nombreArchivo; a.click();
+                    URL.revokeObjectURL(u);
+                    updateStatus("EPUB descargado — adjúntalo manualmente.");
+                }
+            } catch (err) {
+                if (err && err.name === 'AbortError') {
+                    updateStatus("Envío cancelado.");
+                } else {
+                    console.error(err);
+                    updateStatus("No se pudo compartir el archivo.");
+                }
+            }
         }
     </script>
 </body>
